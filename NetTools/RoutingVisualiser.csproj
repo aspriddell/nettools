@@ -2,12 +2,11 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="Havit.Blazor.Components.Web.Bootstrap" Version="4.6.4" />
+      <PackageReference Include="Macross.Json.Extensions" Version="3.0.0" />
       <PackageReference Include="MaxMind.Db" Version="4.1.0" />
       <PackageReference Include="Persilsoft.Leaflet.Blazor" Version="1.0.4" />
     </ItemGroup>
