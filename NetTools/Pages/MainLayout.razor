@@ -1,0 +1,29 @@
+﻿@inherits LayoutComponentBase
+
+<div class="px-5 my-3">
+    <nav class="d-flex align-items-center gap-4">
+        <HxButton Outline="true" CssClass="text-decoration-none" OnClick="OpenPing" Text="Ping" Color="ThemeColor.Link" />
+        <HxButton Outline="true" CssClass="text-decoration-none" OnClick="OpenTraceroute" Text="Traceroute" Color="ThemeColor.Link" />
+    </nav>
+    <hr/>
+</div>
+
+<div class="px-5">
+    @Body
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">&times;</a>
+</div>
+
+@code {
+
+    [Inject]
+    private NavigationManager Navigation { get; set; }
+
+    private void OpenPing() => Navigation.NavigateTo("/ping");
+    private void OpenTraceroute() => Navigation.NavigateTo("/traceroute");
+
+}
