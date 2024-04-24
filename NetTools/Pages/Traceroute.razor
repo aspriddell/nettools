@@ -1,10 +1,36 @@
 @page "/traceroute"
 
 <div class="d-flex flex-column gap-3">
+    @if (HostTraces?.Any() == true)
+    {
+        <div class="d-flex gap-4 align-items-center w-100">
+            <HxSelect Label="Host"
+                      Data="@HostTraces"
+                      @bind-Value="SelectedHost"
+                      TextSelector="@(x => x.Key)"
+                      ValueSelector="@(x => x)"/>
+
+            <HxSelect Label="Route"
+                      Data="@SelectedHost"
+                      @bind-Value="SelectedTrace"
+                      TextSelector="@(x => $"Route {x.Id}")"
+                      ValueSelector="@(x => x)"/>
+
+            @* spacing *@
+            <div class="flex-grow-1"></div>
+            
+            <HxButton Color="ThemeColor.Link" CssClass="text-info text-decoration-none" OnClick="() => ShowUploadDialog = !ShowUploadDialog">
+                Toggle Log Upload
+            </HxButton>
+        </div>
+    }
+
+    @if (ShowUploadDialog || HostTraces?.Any() != true)
+    {
+        <HxInputFileDropZone Accept="application/zip" OnChange="ProcessArchive"/>
+    }
+
     <div class="map-container">
-        <Map ZoomLevel="3"></Map>
+        <RealTimeMap width="100%" height="50vh" @ref="_map" Parameters="_loadParameters"/>
     </div>
-
-    <HxInputFileDropZone Accept="application/zip" OnChange="ProcessArchive" />
-
 </div>

@@ -6,6 +6,10 @@ using System.Linq;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Humanizer;
+using LeafletForBlazor;
+using MaxMind.GeoIP2;
+using MaxMind.GeoIP2.Responses;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using RoutingVisualiser.Models;
@@ -16,7 +20,31 @@ namespace RoutingVisualiser.Pages
     
     public partial class Traceroute : ComponentBase
     {
+        private RealTimeMap _map;
+        private TracerouteRouteGroup _selectedTrace;
+        private IDictionary<IPAddress, CityResponse> _geolocationCache = new Dictionary<IPAddress, CityResponse>();
+        private readonly RealTimeMap.LoadParameters _loadParameters = new()
+        {
+            zoom_level = 4
+        };
+
+        [Inject]
+        private DatabaseReader GeoIP { get; set; }
+
         private ILookup<string, TracerouteRouteGroup> HostTraces { get; set; }
+        private IGrouping<string, TracerouteRouteGroup> SelectedHost { get; set; }
+
+        private TracerouteRouteGroup SelectedTrace
+        {
+            get => _selectedTrace;
+            set
+            {
+                _selectedTrace = value;
+                _ = PlotRoute(value);
+            }
+        }
+
+        private bool ShowUploadDialog { get; set; }
 
         private async Task ProcessArchive(InputFileChangeEventArgs obj)
         {
@@ -104,6 +132,62 @@ namespace RoutingVisualiser.Pages
             }
             
             HostTraces = distinctRoutes.ToLookup(x => x.Destination);
+
+            SelectedHost = HostTraces.FirstOrDefault();
+            SelectedTrace = SelectedHost?.FirstOrDefault();
         }
+        
+        private async Task PlotRoute(TracerouteRouteGroup route)
+        {
+            await Task.Yield();
+            
+            await _map.Geometric.Points.delete();
+            await _map.Geometric.DisplayPolylinesFromArray.deleteMeasure();
+
+            double[] lastLocation = null;
+            var points = new HashSet<(double Lat, double Long)>();
+
+            try
+            {
+                foreach (var hop in route.Hops)
+                {
+                    if (!GeoIP.TryCity(hop.IP, out var ipInfo))
+                    {
+                        continue;
+                    }
+                    
+                    if (ipInfo?.Location.Latitude.HasValue != true || !ipInfo.Location.Longitude.HasValue)
+                    {
+                        continue;
+                    }
+
+                    _geolocationCache[hop.IP] = ipInfo;
+
+                    double[] location = [ipInfo.Location.Latitude.Value, ipInfo.Location.Longitude.Value];
+                    points.Add((location[0], location[1]));
+
+                    // plot line segment if there's a previous location to connect to
+                    if (lastLocation != null && !lastLocation.SequenceEqual(location))
+                    {
+                        var polyLine = new RealTimeMap.MeasureLine
+                        {
+                            start = lastLocation,
+                            end = location
+                        };
+
+                        await _map.Geometric.DisplayPolylinesFromArray.addMeasure(polyLine);
+                    }
+
+                    lastLocation = location;
+                }
+
+                await _map.Geometric.Points.upload(points.Select(x => new RealTimeMap.StreamPoint { guid = Guid.NewGuid(), type = "hop", value = "hop", latitude = x.Lat, longitude = x.Long }).ToList());
+            }
+            catch (Exception e)
+            {
+                Console.Read();
+            }
+        }
+        
     }
 }
