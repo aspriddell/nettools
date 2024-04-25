@@ -1,0 +1,56 @@
+@page "/ping"
+@using RoutingVisualiser.Models
+
+@if (PingResults?.Count > 0)
+{
+    <div class="d-flex align-items-center gap-4">
+        <HxSelect Label="Host"
+                  Data="@PingResults"
+                  @bind-Value="SelectedHost"
+                  NullText="All Hosts"
+                  Nullable=@(PingResults.Count > 1)
+                  TextSelector="@(a => a.Key)"
+                  ValueSelector="@(a => a)" />
+        
+        @* spacing *@
+        <div class="flex-grow-1"></div>
+
+        <HxButton Color="ThemeColor.Link" CssClass="text-info text-decoration-none" OnClick="() => ShowUploadDialog = !ShowUploadDialog">
+            Toggle Log Upload
+        </HxButton>
+    </div>
+}
+
+@if (PingResults == null || ShowUploadDialog)
+{
+    <HxInputFileDropZone Accept="application/zip,application/json" OnChange="SelectedFileChanged" />
+}
+
+@if (PingResults != null && SelectedHost == null)
+{
+    // box plot for all hosts RTT and a stacked graph of session outcome (loss, success, heavy loss)
+    <div style="height: 50vh">
+        <ApexChart TItem="PingResult">
+            <ApexChart TItem="PingResult" Title="Packet Result" Options="_packetLossChartOptions">
+                <ApexPointSeries TItem="PingResult"
+                                 Items="PingResults.SelectMany(x => x)"
+                                 Name="Packets Lost"
+                                 SeriesType="SeriesType.Bar"
+                                 XValue="@(e => e.Destination)"
+                                 YAggregate="@(e => e.Sum(x => x.PacketsTransmitted - x.PacketsReceived))"/>
+
+                <ApexPointSeries TItem="PingResult"
+                                 Items="PingResults.SelectMany(x => x)"
+                                 Name="Packets Received"
+                                 SeriesType="SeriesType.Bar"
+                                 XValue="@(e => e.Destination)"
+                                 YAggregate="@(e => e.Sum(x => x.PacketsReceived))"/>
+            </ApexChart>
+        </ApexChart>
+    </div>
+    
+}
+else
+{
+    // plot loss over time and display a table of dates and loss percentages (colour coded)
+}
