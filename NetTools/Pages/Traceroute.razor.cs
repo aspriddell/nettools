@@ -13,10 +13,9 @@ using Microsoft.JSInterop;
 using RoutingVisualiser.Models;
 
 namespace RoutingVisualiser.Pages;
-    
+
 public partial class Traceroute : ComponentBase, IAsyncDisposable
 {
-    private record MapMarker(double[] Position, string Label);
     private record TracerouteRouteGroup(int Id, string Destination, IReadOnlyList<TracerouteProbe> Hops, IReadOnlyList<DateTimeOffset> TimesEncountered);
 
     private IJSObjectReference _mapRef, _markerLayerRef;

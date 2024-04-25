@@ -3,7 +3,7 @@ using System.Net;
 
 namespace RoutingVisualiser.Models;
 
-public record PingResult(
+internal record PingResult(
     IPAddress DestinationIP,
     string Destination,
     int DataBytes,
@@ -18,7 +18,7 @@ public record PingResult(
     long Timestamp,
     IReadOnlyList<PingResponse> Responses);
 
-public record PingResponse(
+internal record PingResponse(
     string Type,
     int Bytes,
     IPAddress ResponseIP,
