@@ -5,12 +5,14 @@
     {
         <div class="d-flex gap-4 align-items-center w-100">
             <HxSelect Label="Host"
+                      Nullable="false"
                       Data="@HostTraces"
                       @bind-Value="SelectedHost"
                       TextSelector="@(x => x.Key)"
                       ValueSelector="@(x => x)"/>
 
             <HxSelect Label="Route"
+                      Nullable="false"
                       Data="@SelectedHost"
                       @bind-Value="SelectedTrace"
                       TextSelector="@(x => $"Route {x.Id}")"
