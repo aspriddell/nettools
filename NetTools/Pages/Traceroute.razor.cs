@@ -6,30 +6,30 @@ using System.Linq;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Humanizer;
-using LeafletForBlazor;
 using MaxMind.GeoIP2;
-using MaxMind.GeoIP2.Responses;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.JSInterop;
 using RoutingVisualiser.Models;
 
 namespace RoutingVisualiser.Pages
 {
+    
     public record TracerouteRouteGroup(int Id, string Destination, IReadOnlyList<TracerouteProbe> Hops, IReadOnlyList<DateTimeOffset> TimesEncountered);
     
-    public partial class Traceroute : ComponentBase
+    public partial class Traceroute : ComponentBase, IAsyncDisposable
     {
-        private RealTimeMap _map;
+        private record MapMarker(double[] position, string label);
+        
+        private IJSObjectReference _mapRef, _markerLayerRef;
+        
         private TracerouteRouteGroup _selectedTrace;
-        private IDictionary<IPAddress, CityResponse> _geolocationCache = new Dictionary<IPAddress, CityResponse>();
-        private readonly RealTimeMap.LoadParameters _loadParameters = new()
-        {
-            zoom_level = 4
-        };
 
         [Inject]
         private DatabaseReader GeoIP { get; set; }
+        
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; }
 
         private ILookup<string, TracerouteRouteGroup> HostTraces { get; set; }
         private IGrouping<string, TracerouteRouteGroup> SelectedHost { get; set; }
@@ -45,6 +45,15 @@ namespace RoutingVisualiser.Pages
         }
 
         private bool ShowUploadDialog { get; set; }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (firstRender)
+            {
+                _mapRef = await JsRuntime.InvokeAsync<IJSObjectReference>("initMap", "map");
+                _markerLayerRef = await JsRuntime.InvokeAsync<IJSObjectReference>("createLayer", _mapRef);
+            }
+        }
 
         private async Task ProcessArchive(InputFileChangeEventArgs obj)
         {
@@ -139,55 +148,59 @@ namespace RoutingVisualiser.Pages
         
         private async Task PlotRoute(TracerouteRouteGroup route)
         {
-            await Task.Yield();
+            if (_markerLayerRef != null)
+            {
+                await JsRuntime.InvokeVoidAsync("clearLayer", _markerLayerRef);
+            }
             
-            await _map.Geometric.Points.delete();
-            await _map.Geometric.DisplayPolylinesFromArray.deleteMeasure();
+            
 
             double[] lastLocation = null;
-            var points = new HashSet<(double Lat, double Long)>();
+            var markers = new List<MapMarker>();
+            var routePolylineCoords = new List<double[]>();
 
-            try
+            foreach (var hop in route.Hops.Where(x => x != null))
             {
-                foreach (var hop in route.Hops)
+                if (!GeoIP.TryCity(hop.IP, out var ipInfo))
                 {
-                    if (!GeoIP.TryCity(hop.IP, out var ipInfo))
-                    {
-                        continue;
-                    }
-                    
-                    if (ipInfo?.Location.Latitude.HasValue != true || !ipInfo.Location.Longitude.HasValue)
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    _geolocationCache[hop.IP] = ipInfo;
+                if (ipInfo?.Location.Latitude.HasValue != true || !ipInfo.Location.Longitude.HasValue)
+                {
+                    continue;
+                }
 
-                    double[] location = [ipInfo.Location.Latitude.Value, ipInfo.Location.Longitude.Value];
-                    points.Add((location[0], location[1]));
-
-                    // plot line segment if there's a previous location to connect to
-                    if (lastLocation != null && !lastLocation.SequenceEqual(location))
-                    {
-                        var polyLine = new RealTimeMap.MeasureLine
-                        {
-                            start = lastLocation,
-                            end = location
-                        };
-
-                        await _map.Geometric.DisplayPolylinesFromArray.addMeasure(polyLine);
-                    }
+                double[] location = [ipInfo.Location.Latitude.Value, ipInfo.Location.Longitude.Value];
+                if (lastLocation?.SequenceEqual(location) != true)
+                {
+                    markers.Add(new MapMarker(location, $"{hop.Name} ({hop.IP})"));
+                    routePolylineCoords.Add(location);
 
                     lastLocation = location;
                 }
-
-                await _map.Geometric.Points.upload(points.Select(x => new RealTimeMap.StreamPoint { guid = Guid.NewGuid(), type = "hop", value = "hop", latitude = x.Lat, longitude = x.Long }).ToList());
+            }
+                
+            try
+            {
+                await JsRuntime.InvokeVoidAsync("addMarkers", _mapRef, _markerLayerRef, markers.ToArray());
+                await JsRuntime.InvokeVoidAsync("addPolyline", _markerLayerRef, routePolylineCoords.ToArray());
             }
             catch (Exception e)
             {
                 Console.Read();
             }
         }
-        
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_mapRef != null)
+            {
+                await JsRuntime.InvokeVoidAsync("disposeMap", _mapRef);
+                
+                await _mapRef.DisposeAsync();
+                await _markerLayerRef.DisposeAsync();
+            }
+        }
     }
 }
