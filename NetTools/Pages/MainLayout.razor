@@ -2,8 +2,9 @@
 
 <div class="px-5 my-3">
     <nav class="d-flex align-items-center gap-4">
-        <HxButton Outline="true" CssClass="text-decoration-none" OnClick="OpenPing" Text="Ping" Color="ThemeColor.Link" />
-        <HxButton Outline="true" CssClass="text-decoration-none" OnClick="OpenTraceroute" Text="Traceroute" Color="ThemeColor.Link" />
+        <HxButton Outline="true" CssClass="text-decoration-none" Color="ThemeColor.Link" OnClick="OpenHome" Text="Home"/>
+        <HxButton Outline="true" CssClass="text-decoration-none" Color="ThemeColor.Link" OnClick="OpenPing" Text="Ping"/>
+        <HxButton Outline="true" CssClass="text-decoration-none" Color="ThemeColor.Link" OnClick="OpenTraceroute" Text="Traceroute"/>
     </nav>
     <hr/>
 </div>
@@ -20,9 +21,9 @@
 
 @code {
 
-    [Inject]
-    private NavigationManager Navigation { get; set; }
+    [Inject] private NavigationManager Navigation { get; set; }
 
+    private void OpenHome() => Navigation.NavigateTo("/");
     private void OpenPing() => Navigation.NavigateTo("/ping");
     private void OpenTraceroute() => Navigation.NavigateTo("/traceroute");
 
