@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -7,6 +8,7 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using MaxMind.GeoIP2;
+using MaxMind.GeoIP2.Responses;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
@@ -22,8 +24,9 @@ namespace RoutingVisualiser.Pages
         private record MapMarker(double[] position, string label);
         
         private IJSObjectReference _mapRef, _markerLayerRef;
-        
         private TracerouteRouteGroup _selectedTrace;
+
+        private readonly IDictionary<IPAddress, CityResponse> _ipCache = new ConcurrentDictionary<IPAddress, CityResponse>();
 
         [Inject]
         private DatabaseReader GeoIP { get; set; }
@@ -81,10 +84,8 @@ namespace RoutingVisualiser.Pages
                 }
             }
 
-            var tracesByHost = listing.OrderBy(x => x.Timestamp).GroupBy(x => x.DestinationName);
             var distinctRoutes = new List<TracerouteRouteGroup>();
-
-            foreach (var hostTraceGroup in tracesByHost)
+            foreach (var hostTraceGroup in listing.OrderBy(x => x.Timestamp).GroupBy(x => x.DestinationName))
             {
                 var routeCount = hostTraceGroup.Count();
                 var processedRoutes = new List<TracerouteResult>();
@@ -152,12 +153,9 @@ namespace RoutingVisualiser.Pages
             {
                 await JsRuntime.InvokeVoidAsync("clearLayer", _markerLayerRef);
             }
-            
-            
 
             double[] lastLocation = null;
             var markers = new List<MapMarker>();
-            var routePolylineCoords = new List<double[]>();
 
             foreach (var hop in route.Hops.Where(x => x != null))
             {
@@ -166,30 +164,24 @@ namespace RoutingVisualiser.Pages
                     continue;
                 }
 
-                if (ipInfo?.Location.Latitude.HasValue != true || !ipInfo.Location.Longitude.HasValue)
+                _ipCache[hop.IP] = ipInfo;
+
+                if (!ipInfo.Location.HasCoordinates)
                 {
                     continue;
                 }
-
+                
                 double[] location = [ipInfo.Location.Latitude.Value, ipInfo.Location.Longitude.Value];
+
                 if (lastLocation?.SequenceEqual(location) != true)
                 {
                     markers.Add(new MapMarker(location, $"{hop.Name} ({hop.IP})"));
-                    routePolylineCoords.Add(location);
-
                     lastLocation = location;
                 }
             }
-                
-            try
-            {
-                await JsRuntime.InvokeVoidAsync("addMarkers", _mapRef, _markerLayerRef, markers.ToArray());
-                await JsRuntime.InvokeVoidAsync("addPolyline", _markerLayerRef, routePolylineCoords.ToArray());
-            }
-            catch (Exception e)
-            {
-                Console.Read();
-            }
+            
+            // map, layer, markers, draw polyline
+            await JsRuntime.InvokeVoidAsync("addMarkers", _mapRef, _markerLayerRef, markers.ToArray(), true);
         }
 
         public async ValueTask DisposeAsync()

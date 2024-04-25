@@ -29,13 +29,17 @@ function removeLayer(map, layer) {
     map.removeLayer(layer);
 }
 
-function addMarkers(map, layerGroup, markers) {    
+function addMarkers(map, layerGroup, markers, includePolyline) {    
     const markerInstances = markers.map(marker => {
         return L.marker(marker.position).bindPopup(marker.label);
     });
 
     // add layers
     markerInstances.forEach(m => layerGroup.addLayer(m));
+    
+    if (includePolyline) {
+        addPolyline(layerGroup, markers.map(m => m.position));
+    }
 
     // https://stackoverflow.com/a/16845714
     const group = new L.featureGroup(markerInstances);
