@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -8,7 +7,6 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using MaxMind.GeoIP2;
-using MaxMind.GeoIP2.Responses;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
