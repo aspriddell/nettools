@@ -70,15 +70,22 @@ namespace RoutingVisualiser.Pages
             {
                 foreach (var entry in archiveStream.Entries.Where(x => !string.IsNullOrEmpty(x.Name)))
                 {
-                    await using var entryStream = entry.Open();
-                    var deserializedEntry = await JsonSerializer.DeserializeAsync<TracerouteResult>(entryStream, Program.JsonOptions);
-
-                    if (deserializedEntry == null)
+                    try
                     {
-                        continue;
-                    }
+                        await using var entryStream = entry.Open();
+                        var deserializedEntry = await JsonSerializer.DeserializeAsync<TracerouteResult>(entryStream, Program.JsonOptions);
 
-                    listing.Add(deserializedEntry);
+                        if (deserializedEntry == null)
+                        {
+                            continue;
+                        }
+
+                        listing.Add(deserializedEntry);
+                    }
+                    catch
+                    {
+                        // ignore deserialization errors
+                    }
                 }
             }
 

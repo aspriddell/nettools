@@ -68,7 +68,17 @@
                         <tr>
                             <th scope="row">@(i++)</th>
                             <td>
-                                <img alt="country flag" src=@($"https://cdn.jsdelivr.net/gh/ppy/osu-resources@2024.410.0/osu.Game.Resources/Textures/Flags/{ipInfo?.Country.IsoCode?.ToUpperInvariant() ?? "__"}.png") height="20"/>
+                                <div class="d-flex align-items-center gap-3">
+                                    <img alt="country flag" src=@($"https://cdn.jsdelivr.net/gh/ppy/osu-resources@2024.410.0/osu.Game.Resources/Textures/Flags/{ipInfo?.Country.IsoCode?.ToUpperInvariant() ?? "__"}.png") height="20"/>
+                                    @if (!string.IsNullOrEmpty(ipInfo?.City.Name))
+                                    {
+                                        <span>@ipInfo.City.Name, @ipInfo.Country.Name</span>
+                                    }
+                                    else if (!string.IsNullOrEmpty(ipInfo?.Country.Name))
+                                    {
+                                        <span>@ipInfo.Country.Name</span>
+                                    }
+                                </div>
                             </td>
                             <td>@hop.Name</td>
                             <td>@hop.IP.ToString()</td>
