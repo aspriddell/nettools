@@ -31,4 +31,53 @@
     }
 
     <div id="map" class="map-container"></div>
+    
+    @if (SelectedTrace != null)
+    {
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">Hop #</th>
+                <th scope="col">Country</th>
+                <th scope="col">Name</th>
+                <th scope="col">IP Address</th>
+                <th scope="col">Roundtrip Time (ms)</th>
+            </tr>
+            </thead>
+            <tbody>
+            @{
+                var i = 1;
+                foreach (var hop in SelectedTrace.Hops)
+                {
+                    if (hop == null)
+                    {
+                        <tr>
+                            <th scope="row">@(i++)</th>
+                            <td>
+                                <img alt="unknown country" src="https://cdn.jsdelivr.net/gh/ppy/osu-resources@2024.410.0/osu.Game.Resources/Textures/Flags/__.png" height="20"/>
+                            </td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>- (timed out)</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        var ipInfo = GeoIP.TryCity(hop.IP, out var ip) ? ip : null;
+                    
+                        <tr>
+                            <th scope="row">@(i++)</th>
+                            <td>
+                                <img alt="country flag" src=@($"https://cdn.jsdelivr.net/gh/ppy/osu-resources@2024.410.0/osu.Game.Resources/Textures/Flags/{ipInfo?.Country.IsoCode?.ToUpperInvariant() ?? "__"}.png") height="20"/>
+                            </td>
+                            <td>@hop.Name</td>
+                            <td>@hop.IP.ToString()</td>
+                            <td>@hop.RoundtripTimeMs.ToString("f3")</td>
+                        </tr>
+                    }
+                }
+            }
+            </tbody>
+        </table>
+    }
 </div>

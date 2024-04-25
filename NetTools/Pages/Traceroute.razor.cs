@@ -26,8 +26,6 @@ namespace RoutingVisualiser.Pages
         private IJSObjectReference _mapRef, _markerLayerRef;
         private TracerouteRouteGroup _selectedTrace;
 
-        private readonly IDictionary<IPAddress, CityResponse> _ipCache = new ConcurrentDictionary<IPAddress, CityResponse>();
-
         [Inject]
         private DatabaseReader GeoIP { get; set; }
         
@@ -163,8 +161,6 @@ namespace RoutingVisualiser.Pages
                 {
                     continue;
                 }
-
-                _ipCache[hop.IP] = ipInfo;
 
                 if (!ipInfo.Location.HasCoordinates)
                 {
