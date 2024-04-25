@@ -15,6 +15,7 @@
                       Nullable="false"
                       Data="@SelectedHost"
                       @bind-Value="SelectedTrace"
+                      SortKeySelector="x => x.Id"
                       TextSelector="@(x => $"Route {x.Id}")"
                       ValueSelector="@(x => x)"/>
 
