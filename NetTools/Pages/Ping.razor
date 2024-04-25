@@ -1,56 +1,82 @@
 @page "/ping"
 @using RoutingVisualiser.Models
 
-@if (PingResults?.Count > 0)
-{
-    <div class="d-flex align-items-center gap-4">
-        <HxSelect Label="Host"
-                  Data="@PingResults"
-                  @bind-Value="SelectedHost"
-                  NullText="All Hosts"
-                  Nullable=@(PingResults.Count > 1)
-                  TextSelector="@(a => a.Key)"
-                  ValueSelector="@(a => a)" />
-        
-        @* spacing *@
-        <div class="flex-grow-1"></div>
+<div class="d-flex flex-column gap-3">
+    @if (PingResults?.Count > 0)
+    {
+        <div class="d-flex align-items-center gap-4">
+            <HxSelect Label="Host"
+                      Data="@PingResults"
+                      @bind-Value="SelectedHost"
+                      NullText="All Hosts"
+                      Nullable=@(PingResults.Count > 1)
+                      TextSelector="@(a => a.Key)"
+                      ValueSelector="@(a => a)"/>
 
-        <HxButton Color="ThemeColor.Link" CssClass="text-info text-decoration-none" OnClick="() => ShowUploadDialog = !ShowUploadDialog">
-            Toggle Log Upload
-        </HxButton>
-    </div>
-}
+            @* spacing *@
+            <div class="flex-grow-1"></div>
 
-@if (PingResults == null || ShowUploadDialog)
-{
-    <HxInputFileDropZone Accept="application/zip,application/json" OnChange="SelectedFileChanged" />
-}
+            <HxButton Color="ThemeColor.Link" CssClass="text-info text-decoration-none" OnClick="() => ShowUploadDialog = !ShowUploadDialog">
+                Toggle Log Upload
+            </HxButton>
+        </div>
+    }
 
-@if (PingResults != null && SelectedHost == null)
-{
-    // box plot for all hosts RTT and a stacked graph of session outcome (loss, success, heavy loss)
-    <div style="height: 50vh">
-        <ApexChart TItem="PingResult">
-            <ApexChart TItem="PingResult" Title="Packet Result" Options="_packetLossChartOptions">
-                <ApexPointSeries TItem="PingResult"
-                                 Items="PingResults.SelectMany(x => x)"
-                                 Name="Packets Lost"
-                                 SeriesType="SeriesType.Bar"
-                                 XValue="@(e => e.Destination)"
-                                 YAggregate="@(e => e.Sum(x => x.PacketsTransmitted - x.PacketsReceived))"/>
-
-                <ApexPointSeries TItem="PingResult"
-                                 Items="PingResults.SelectMany(x => x)"
-                                 Name="Packets Received"
-                                 SeriesType="SeriesType.Bar"
-                                 XValue="@(e => e.Destination)"
-                                 YAggregate="@(e => e.Sum(x => x.PacketsReceived))"/>
-            </ApexChart>
-        </ApexChart>
-    </div>
+    @if (PingResults == null || ShowUploadDialog)
+    {
+        <HxInputFileDropZone Accept="application/zip,application/json" OnChange="SelectedFileChanged"/>
+    }
     
-}
-else
-{
-    // plot loss over time and display a table of dates and loss percentages (colour coded)
-}
+    @switch (SelectedHost)
+    {
+        case null when PingResults != null:
+            <hr/>
+
+            // box plot for all hosts RTT and a stacked graph of session outcome (loss, success, heavy loss)
+            <div style="height: 50vh">
+                <ApexChart TItem="PingResult" Title="Packet Result" Options="_packetLossChartOptions">
+                    <ApexPointSeries TItem="PingResult"
+                                     Items="PingResults.SelectMany(x => x)"
+                                     Name="Packets Lost"
+                                     SeriesType="SeriesType.Bar"
+                                     XValue="@(e => e.Destination)"
+                                     YAggregate="@(e => e.Sum(x => x.PacketsTransmitted - x.PacketsReceived))"/>
+
+                    <ApexPointSeries TItem="PingResult"
+                                     Items="PingResults.SelectMany(x => x)"
+                                     Name="Packets Received"
+                                     SeriesType="SeriesType.Bar"
+                                     XValue="@(e => e.Destination)"
+                                     YAggregate="@(e => e.Sum(x => x.PacketsReceived))"/>
+                </ApexChart>
+            </div>
+
+            break;
+
+        case not null:
+            // plot loss over time and display a table of dates and loss percentages (colour coded)
+            Func<PingResult, string> xValue = e => DateTimeOffset.FromUnixTimeSeconds(e.Timestamp).Date.ToShortDateString();
+            
+            <hr/>
+            <div style="height: 40vh">
+                <ApexChart Title="Session Outcomes" Options="@_hostPacketLossChartOptions">
+                    <ApexPointSeries Name="Loss-free" SeriesType="SeriesType.Bar" ShowDataLabels
+                                     Items="@SelectedHost" OrderBy="e => e.X" XValue="xValue"
+                                     YAggregate="@(e => e.Count(x => x.PacketLossPercent == 0))"/>
+
+                    <ApexPointSeries Name="Minor Losses" SeriesType="SeriesType.Bar" ShowDataLabels
+                                     Items="@SelectedHost" OrderBy="e => e.X" XValue="xValue"
+                                     YAggregate="@(e => e.Count(x => x.PacketLossPercent is > 0 and < 5))"/>
+
+                    <ApexPointSeries Name="Significant Losses" SeriesType="SeriesType.Bar" ShowDataLabels
+                                     Items="@SelectedHost" OrderBy="e => e.X" XValue="xValue"
+                                     YAggregate="@(e => e.Count(x => x.PacketLossPercent is > 5 and < 10))"/>
+
+                    <ApexPointSeries Name="Extreme Loss" SeriesType="SeriesType.Bar" ShowDataLabels
+                                     Items="@SelectedHost" OrderBy="e => e.X" XValue="xValue"
+                                     YAggregate="@(e => e.Count(x => x.PacketLossPercent > 10))"/>
+                </ApexChart>
+            </div>
+            break;
+    }
+</div>
