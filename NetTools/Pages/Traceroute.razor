@@ -30,7 +30,7 @@
 
     @if (ShowUploadDialog || HostTraces?.Any() != true)
     {
-        <HxInputFileDropZone Accept="application/zip" OnChange="ProcessArchive"/>
+        <HxInputFileDropZone Accept="application/json,application/zip" OnChange="ProcessArchive"/>
     }
 
     <div id="map" class="map-container"></div>

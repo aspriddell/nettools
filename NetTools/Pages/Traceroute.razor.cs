@@ -53,34 +53,68 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
 
     private async Task ProcessArchive(InputFileChangeEventArgs obj)
     {
-        var tempStream = new MemoryStream();
+        IReadOnlyCollection<TracerouteResult> listing;
 
-        await using (var stream = obj.File.OpenReadStream())
+        switch (obj.File.ContentType)
         {
-            await stream.CopyToAsync(tempStream);
-        }
-
-        var listing = new List<TracerouteResult>(100);
-        using (var archiveStream = new ZipArchive(tempStream, ZipArchiveMode.Read, false))
-        {
-            foreach (var entry in archiveStream.Entries.Where(x => !string.IsNullOrEmpty(x.Name)))
-            {
+            case "application/json":
                 try
                 {
-                    await using var entryStream = entry.Open();
-                    var deserializedEntry = await JsonSerializer.DeserializeAsync<TracerouteResult>(entryStream, Program.JsonOptions);
+                    await using var stream = obj.File.OpenReadStream();
+                    var result = await JsonSerializer.DeserializeAsync<TracerouteResult>(stream, Program.JsonOptions);
 
-                    if (deserializedEntry == null)
-                    {
-                        continue;
-                    }
-
-                    listing.Add(deserializedEntry);
+                    listing = new[] { result };
+                    break;
                 }
                 catch
                 {
-                    // ignore deserialization errors
+                    goto default;
                 }
+
+            case "application/zip":
+            {
+                var tempStream = new MemoryStream();
+                var zipListing = new List<TracerouteResult>();
+
+                await using (var stream = obj.File.OpenReadStream())
+                {
+                    await stream.CopyToAsync(tempStream);
+                }
+
+                using var archiveStream = new ZipArchive(tempStream, ZipArchiveMode.Read, false);
+                zipListing.EnsureCapacity(archiveStream.Entries.Count);
+                    
+                foreach (var entry in archiveStream.Entries.Where(x => !string.IsNullOrEmpty(x.Name)))
+                {
+                    try
+                    {
+                        await using var entryStream = entry.Open();
+                        var deserializedEntry = await JsonSerializer.DeserializeAsync<TracerouteResult>(entryStream, Program.JsonOptions);
+
+                        if (deserializedEntry == null)
+                        {
+                            continue;
+                        }
+
+                        zipListing.Add(deserializedEntry);
+                    }
+                    catch
+                    {
+                        // ignore deserialization errors
+                    }
+                }
+                
+                listing = zipListing;
+                break;
+            }
+            
+            default:
+            {
+                HostTraces = null;
+                SelectedTrace = null;
+
+                await JsRuntime.InvokeVoidAsync("clearLayer", _markerLayerRef);
+                return;
             }
         }
 
