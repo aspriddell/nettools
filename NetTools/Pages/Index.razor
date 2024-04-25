@@ -1,9 +1,16 @@
 @page "/"
 
-<div class="d-flex flex-column gap-2 justify-content-center">
-    <h1>Home page</h1>
+<div class="d-flex flex-column w-100 mb-4 mt-2">
+    <h1>Welcome to NetTools v1</h1>
+    <h3>Use the buttons at the top to get started.</h3>
 </div>
 
-@code {
+<h4>What files can be uploaded?</h4>
+<p>Upload boxes accept either a single <code>.json</code> file or a <code>.zip</code> file of .json files. You can use the processor with:</p>
+<ul>
+    <li><code>ping</code> (jc)</li>
+    <li><code>traceroute</code> (jc)</li>
+    <li><code>wget</code> (custom regexes)</li>
+</ul>
 
-}
+<p>Alternatively, the JSON files can be produced for any program that uses <code>jc</code> outputs, with an additional property <code>timestamp</code> containing a unix epoch of the time the response was generated.</p>
