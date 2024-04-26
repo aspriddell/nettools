@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Blazored.LocalStorage;
 using DragonFruit.Data;
@@ -42,10 +43,10 @@ public partial class GeolocationService
                                                      GeolocationFields.IsHostingProvider |
                                                      GeolocationFields.QueryIp;
     
+    private readonly ILogger<GeolocationService> _logger;
     private readonly IndexedDbService _geolocationCache;
     private readonly ILocalStorageService _localStorage;
     private readonly ApiClient _client;
-    private readonly ILogger<GeolocationService> _logger;
 
     private readonly AsyncLock _lock = new();
     private readonly IEnumerable<IPNetwork2> _privateNetworks = new[]
@@ -62,7 +63,7 @@ public partial class GeolocationService
         IPNetwork2.Parse("fe80::/10") // IPv6 link-local
     };
 
-    private Task _cooldownWaiter;
+    private Task _cooldownWaiter, _purgeTask;
 
     public GeolocationService(IndexedDbService geolocationCache, ILocalStorageService localStorage, ApiClient client, ILogger<GeolocationService> logger)
     {
@@ -72,6 +73,7 @@ public partial class GeolocationService
         _logger = logger;
 
         _cooldownWaiter = LoadCooldownInformation().AsTask();
+        _purgeTask = PurgeCache();
     }
     
     public bool MixedHttpPotentiallyBlocked { get; set; }
@@ -124,13 +126,23 @@ public partial class GeolocationService
         async Task<IReadOnlyCollection<IpGeolocation>> CheckCache()
         {
             var output = new LinkedList<IpGeolocation>();
+            var purgeNeeded = false;
 
-            await foreach (var item in _geolocationCache.GetAllAsync<CachedIpGeolocation>(NetToolsSerializerContext.Default.CachedIpGeolocation))
+            await foreach (var item in _geolocationCache.GetAllAsync(NetToolsSerializerContext.Default.CachedIpGeolocation))
             {
                 if (publiclyRoutable.Contains(item.QueryAddress) && item.CreatedEpoch > cacheIgnoreBefore)
                 {
                     output.AddLast(item);
                 }
+                else if (item.CreatedEpoch > cacheIgnoreBefore)
+                {
+                    purgeNeeded = true;
+                }
+            }
+
+            if (purgeNeeded && _purgeTask?.Status != TaskStatus.Running)
+            {
+                _purgeTask = PurgeCache();
             }
 
             return output;
@@ -212,7 +224,7 @@ public partial class GeolocationService
                     else
                     {
                         var collectionListing = new List<IpGeolocation>();
-                        await foreach (var item in httpResponse.Content.ReadFromJsonAsAsyncEnumerable(NetToolsSerializerContext.Default.IpGeolocation).ConfigureAwait<IpGeolocation>(false))
+                        await foreach (var item in httpResponse.Content.ReadFromJsonAsAsyncEnumerable(NetToolsSerializerContext.Default.IpGeolocation).ConfigureAwait(false))
                         {
                             await _geolocationCache.StoreItemAsync(MappingUtils.ToCachedIpGeolocation(item), NetToolsSerializerContext.Default.CachedIpGeolocation).ConfigureAwait(false);
                             collectionListing.Add(item);
@@ -267,6 +279,33 @@ public partial class GeolocationService
         {
             // remove stale record
             await _localStorage.RemoveItemAsync(PersistedCooldownRecord).ConfigureAwait(false);
+        }
+    }
+
+    private async Task PurgeCache()
+    {
+        using (await _lock.LockAsync())
+        {
+            var removalQueue = new Lazy<List<string>>();
+            var purgeBefore = DateTimeOffset.UtcNow.AddDays(-CacheExpiryDays).ToUnixTimeSeconds();
+
+            await foreach (var item in _geolocationCache.GetAllAsync(NetToolsSerializerContext.Default.CachedIpGeolocation))
+            {
+                if (item.CreatedEpoch < purgeBefore)
+                {
+                    removalQueue.Value.Add(item.Id);
+                }
+            }
+
+            if (!removalQueue.IsValueCreated)
+            {
+                return;
+            }
+        
+            foreach (var id in removalQueue.Value)
+            {
+                await _geolocationCache.RemoveItemAsync<CachedIpGeolocation>(id).ConfigureAwait(false);
+            }
         }
     }
 
