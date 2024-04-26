@@ -2,35 +2,31 @@
 @using RoutingVisualiser.Models
 
 <div class="d-flex flex-column gap-3">
-    @if (HostTraces?.Any() == true)
-    {
-        <div class="d-flex gap-4 align-items-center w-100">
-            <HxSelect TItem="string"
-                      TValue="string"
-                      Label="Host"
-                      Nullable="false"
-                      Value="SelectedHost"
-                      ValueChanged="i => SetHost(i)"
-                      Data="@HostTraces.Select(x => x.Key)"/>
-
-            <HxSelect TItem="TracerouteRouteGroup"
-                      TValue="TracerouteRouteGroup"
-                      Label="Route"
-                      Nullable="false"
-                      Value="SelectedTrace"
-                      ValueChanged="i => SetTrace(i)"
-                      Data="@(HostTraces[SelectedHost])"
-                      ValueSelector="@(x => x)"
-                      SortKeySelector="x => x.Id"
-                      TextSelector="@(x => $"Route {x.Id}")"/>
-        </div>
-    }
-
     <FileSubmissionComponent TItem="TracerouteResult"
                              TOut="ILookup<string, TracerouteRouteGroup>"
                              @bind-Current="HostTraces"
                              ProcessItems="i => ProcessRoutes(i).ToLookup(x => x.Destination)"/>
 
+    @if (HostTraces?.Any() == true)
+    {
+        <div class="d-flex gap-4 align-items-center w-100">
+            <select class="form-select" @onchange="i => SetHost(i.Value?.ToString())">
+                @foreach (var host in HostTraces)
+                {
+                    <option value="@host.Key" selected="@(host.Key == SelectedHost)">@host.Key</option>
+                }
+            </select>
+            
+            <select class="form-select" @onchange="i => SetTrace(HostTraces[SelectedHost].Single(x => x.Id == int.Parse(i.Value.ToString())))">
+                @foreach (var trace in HostTraces[SelectedHost].OrderBy(x => x.Id))
+                {
+                    <option value="@trace.Id" selected="@(trace == SelectedTrace)">Route @trace.ToString()</option>
+                }
+            </select>
+        </div>
+    }
+
+    <hr/>
     <div id="map" class="map-container"></div>
     
     @if (SelectedTrace != null)
