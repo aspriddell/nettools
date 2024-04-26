@@ -28,11 +28,14 @@ public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
     
     private string CurrentFileName { get; set; }
     private bool ShowUploadDialog { get; set; }
+    private bool UploadedFileFailed { get; set; }
 
     private CancellationTokenSource FileProcessing { get; set; }
 
     private async Task FileSubmitted(InputFileChangeEventArgs obj)
     {
+        UploadedFileFailed = false;
+        
         if (FileProcessing?.IsCancellationRequested != false)
         {
             FileProcessing?.Dispose();
@@ -93,11 +96,22 @@ public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
                 return;
         }
 
-        CurrentFileName = obj.File.Name;
-        Current = ProcessItems.Invoke(results);
-        await CurrentChanged.InvokeAsync(Current);
-        
-        FileProcessing?.Dispose();
-        FileProcessing = null;
+        try
+        {
+            CurrentFileName = obj.File.Name;
+            Current = ProcessItems.Invoke(results);
+
+            await CurrentChanged.InvokeAsync(Current);
+        }
+        catch (Exception e)
+        {
+            UploadedFileFailed = true;
+            Logger.LogError(e, "Failed to process files: {Error}", e.Message);
+        }
+        finally
+        {
+            FileProcessing?.Dispose();
+            FileProcessing = null;
+        }
     }
 }

@@ -2,7 +2,16 @@
 @typeparam TOut
 
 <div class="d-flex flex-column">
-    @if (Current != null && FileProcessing == null)
+    @if (UploadedFileFailed)
+    {
+        <HxAlert Color="ThemeColor.Warning">
+            <div class="d-flex align-items-center gap-3">
+                <HxIcon Icon="@BootstrapIcon.StopCircle"/>
+                <span>The uploaded file (@CurrentFileName) could not be processed. Please try another file or try again later.</span>
+            </div>
+        </HxAlert>
+    }
+    else if (Current != null && FileProcessing == null)
     {
         <HxAlert Color="ThemeColor.Success">
             <div class="d-flex align-items-center gap-3">
@@ -14,23 +23,23 @@
             </div>
         </HxAlert>
     }
-    else if (FileProcessing != null)
+    else if (FileProcessing != null && !UploadedFileFailed)
     {
-    <HxAlert Color="ThemeColor.Info">
-        <div class="d-flex align-items-center gap-3">
-            <HxIcon Icon="@BootstrapIcon.InfoCircleFill"/>
-            <span>Processing File...</span>
+        <HxAlert Color="ThemeColor.Info">
+            <div class="d-flex align-items-center gap-3">
+                <HxIcon Icon="@BootstrapIcon.InfoCircleFill"/>
+                <span>Processing File...</span>
 
-            @if (FileProcessing?.IsCancellationRequested == false)
-            {
-            <div class="flex-grow-1"></div>
-            <HxButton Color="ThemeColor.Link" OnClick="() => FileProcessing.Cancel()">Cancel</HxButton>
-            }
-        </div>
-    </HxAlert>
+                @if (FileProcessing?.IsCancellationRequested == false)
+                {
+                    <div class="flex-grow-1"></div>
+                    <HxButton Color="ThemeColor.Link" OnClick="() => FileProcessing.Cancel()">Cancel</HxButton>
+                }
+            </div>
+        </HxAlert>
     }
 
-    @if (Current == null && FileProcessing == null || ShowUploadDialog)
+    @if (Current == null && FileProcessing == null || ShowUploadDialog || UploadedFileFailed)
     {
         <HxInputFileDropZone Accept="application/zip,application/json" OnChange="FileSubmitted" CssClass="mb-3"/>
     }
