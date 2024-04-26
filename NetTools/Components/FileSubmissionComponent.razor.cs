@@ -38,6 +38,8 @@ public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
             FileProcessing?.Dispose();
             FileProcessing = new CancellationTokenSource();
         }
+
+        ShowUploadDialog = false;
         
         IReadOnlyCollection<TItem> results;
         
