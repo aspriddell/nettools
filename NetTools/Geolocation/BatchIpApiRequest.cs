@@ -9,7 +9,7 @@ namespace RoutingVisualiser.Geolocation;
 /// <summary>
 /// Request for batch geolocation lookups using the ip-api.com service.
 /// </summary>
-public partial class BatchIpApiRequest(IEnumerable<IPAddress> addresses) : ApiRequest
+internal partial class BatchIpApiRequest(IEnumerable<IPAddress> addresses) : ApiRequest
 {
     public override string RequestPath => "https://ip-api.com/batch";
     public override HttpMethod RequestMethod => HttpMethod.Post;

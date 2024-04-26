@@ -8,7 +8,7 @@ namespace RoutingVisualiser.Geolocation;
 /// Request for info about a single IP address using the ip-api.com service.
 /// </summary>
 /// <param name="address">The address to lookup</param>
-public partial class IpApiRequest(IPAddress address) : ApiRequest
+internal partial class IpApiRequest(IPAddress address) : ApiRequest
 {
     public override string RequestPath => $"https://ip-api.com/json/{address}";
     

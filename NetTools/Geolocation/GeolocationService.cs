@@ -25,6 +25,21 @@ public partial class GeolocationService
 
     private const int CacheExpiryDays = 21;
     private const string PersistedCooldownRecord = "geocache-cooldown-epoch";
+
+    private const GeolocationFields ResponseFields = GeolocationFields.Message |
+                                                     GeolocationFields.Country |
+                                                     GeolocationFields.CountryCode |
+                                                     GeolocationFields.Region |
+                                                     GeolocationFields.RegionName |
+                                                     GeolocationFields.City |
+                                                     GeolocationFields.Latitude |
+                                                     GeolocationFields.Longitude |
+                                                     GeolocationFields.Isp |
+                                                     GeolocationFields.Org |
+                                                     GeolocationFields.As |
+                                                     GeolocationFields.AsName |
+                                                     GeolocationFields.IsHostingProvider |
+                                                     GeolocationFields.QueryIp;
     
     private readonly IndexedDbService _geolocationCache;
     private readonly ILocalStorageService _localStorage;
@@ -128,7 +143,7 @@ public partial class GeolocationService
             
             while (CooldownWaiter?.IsCompleted != false && missing.Count > 0)
             {
-                ApiRequest request = missing.Count == 1 ? new IpApiRequest(missing.Single()) : new BatchIpApiRequest(missing.Take(100));
+                ApiRequest request = missing.Count == 1 ? new IpApiRequest(missing.Single()) { Fields = ResponseFields } : new BatchIpApiRequest(missing.Take(100)) { Fields = ResponseFields };
                 using var httpResponse = await _client.PerformAsync(request).ConfigureAwait(false);
             
                 await ProcessRatelimitUpdate(httpResponse).ConfigureAwait(false);
