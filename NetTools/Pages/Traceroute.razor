@@ -1,7 +1,7 @@
 @page "/traceroute"
 @using RoutingVisualiser.Models
 
-<div class="d-flex flex-column gap-3">
+<div class="d-flex flex-column gap-2">
     <FileSubmissionComponent TItem="TracerouteResult"
                              TOut="ILookup<string, TracerouteRouteGroup>"
                              @bind-Current="HostTraces"
@@ -20,7 +20,7 @@
             <select class="form-select" @onchange="i => SetTrace(HostTraces[SelectedHost].Single(x => x.Id == int.Parse(i.Value.ToString())))">
                 @foreach (var trace in HostTraces[SelectedHost].OrderBy(x => x.Id))
                 {
-                    <option value="@trace.Id" selected="@(trace == SelectedTrace)">Route @trace.ToString()</option>
+                    <option value="@trace.Id" selected="@(trace.Id == SelectedTrace?.Id)">Route @trace.Id.ToString()</option>
                 }
             </select>
         </div>
@@ -28,6 +28,9 @@
 
     <hr/>
     <div id="map" class="map-container"></div>
+    
+    @* spacing *@
+    <div></div>
     
     @if (SelectedTrace != null)
     {
