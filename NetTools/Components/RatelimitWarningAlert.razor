@@ -1,0 +1,48 @@
+@using System.Threading
+@using NetTools.Geolocation
+@implements IDisposable
+
+@if (Geolocation.CooldownWaiter?.IsCompletedSuccessfully == false)
+{
+    <HxAlert Color="ThemeColor.Danger">
+        <div class="d-flex align-items-center gap-2">
+            <HxIcon Icon="@BootstrapIcon.ExclamationTriangleFill"/>
+            <strong class="ps-3">Cooldown active</strong>
+            <span>The Geolocation feature has triggered a rate-limit. Expect reduced functionality for the next minute.</span>
+        </div>
+    </HxAlert>
+}
+
+@code {
+
+    private CancellationTokenSource _cts = new();
+    
+    [Inject]
+    private GeolocationService Geolocation { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Geolocation.CooldownChanged += CooldownReplaced;
+        Geolocation.CooldownWaiter?.ContinueWith(_ => InvokeAsync(StateHasChanged), _cts.Token);
+    }
+
+    private void CooldownReplaced()
+    {
+        // invoke update when cooldown ends
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+
+        Geolocation.CooldownWaiter?.ContinueWith(_ => InvokeAsync(StateHasChanged), _cts.Token);
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        
+        Geolocation.CooldownChanged -= CooldownReplaced;
+    }
+
+}

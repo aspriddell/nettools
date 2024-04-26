@@ -16,11 +16,13 @@
 </div>
 
 <div class="px-5">
+    <RatelimitWarningAlert/>
+    
     @Body
 </div>
 
 <footer class="d-flex flex-column align-items-center gap-1 py-3 text-muted">
-    <span style="font-size: medium">&middot; &middot; &middot; &middot;</span>
+    <span style="font-size: medium">&middot; &middot; &middot; &middot; &middot;</span>
     <small>NetTools @($"v{_version}") powered by Blazor WebAssembly @Environment.Version.ToString()</small>
 </footer>
 
