@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.Extensions.Logging;
 
 namespace RoutingVisualiser.Components;
 
@@ -21,6 +22,9 @@ public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
     
     [Parameter]
     public Func<IReadOnlyCollection<TItem>, TOut> ProcessItems { get; set; }
+    
+    [Inject]
+    private ILogger<FileSubmissionComponent<TItem, TOut>> Logger { get; set; }
     
     private string CurrentFileName { get; set; }
     private bool ShowUploadDialog { get; set; }
@@ -73,9 +77,9 @@ public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
                         var result = await JsonSerializer.DeserializeAsync<TItem>(entryStream, Program.JsonOptions);
                         archiveResults.Add(result);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // ignore deserialization errors
+                        Logger.LogWarning(e, "Failed to process {FileName}: {Error}", entry.Name, e.Message);
                     }
                 }
 
