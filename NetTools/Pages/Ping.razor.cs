@@ -7,6 +7,8 @@ namespace NetTools.Pages;
 
 public partial class Ping : ComponentBase
 {
+    private ApexChart<PingResult> _packetLossChart, _hostPacketLossChart, _hostDualPingLossChart;
+    
     private readonly ApexChartOptions<PingResult> _packetLossChartOptions = new()
     {
         Theme = new Theme { Mode = Mode.Dark },

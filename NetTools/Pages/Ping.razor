@@ -28,7 +28,7 @@
             case null when PingResults != null:
                 // box plot for all hosts RTT and a stacked graph of session outcome (loss, success, heavy loss)
                 <div style="height: 50vh">
-                    <ApexChart TItem="PingResult" Title="Packet Result" Options="_packetLossChartOptions">
+                    <ApexChart TItem="PingResult" Title="Packet Result" Options="_packetLossChartOptions" @ref="_packetLossChart">
                         <ApexPointSeries TItem="PingResult"
                                          Items="PingResults.SelectMany(x => x)"
                                          Name="Packets Lost"
@@ -44,7 +44,8 @@
                                          YAggregate="@(e => e.Sum(x => x.PacketsReceived))"/>
                     </ApexChart>
                 </div>
-
+                
+                _packetLossChart?.RenderAsync();
                 break;
 
             case not null:
@@ -52,7 +53,7 @@
                 Func<PingResult, string> xValue = e => e.Timestamp.HasValue ? DateTimeOffset.FromUnixTimeSeconds(e.Timestamp.Value).Date.ToShortDateString() : "\u221e";
 
                 <div style="height: 40vh">
-                    <ApexChart Title="Loss Rate/Ping" Options="_hostDualPingLossChartOptions">
+                    <ApexChart Title="Loss Rate/Ping" Options="_hostDualPingLossChartOptions" @ref="_hostDualPingLossChart">
                         @* apex charts expects datetimes to be in millisecond epoch form (hence the *1000) *@
                         <ApexPointSeries Name="Average Ping"
                                          SeriesType="SeriesType.Line"
@@ -69,7 +70,7 @@
                 </div>
 
                 <div style="height: 45vh">
-                    <ApexChart Title="Session Outcomes" Options="@_hostPacketLossChartOptions">
+                    <ApexChart Title="Session Outcomes" Options="@_hostPacketLossChartOptions" @ref="_hostPacketLossChart">
                         <ApexPointSeries Name="Loss-free" SeriesType="SeriesType.Bar" ShowDataLabels
                                          Items="@SelectedHost" OrderBy="e => e.X" XValue="xValue"
                                          YAggregate="@(e => e.Count(x => x.PacketLossPercent == 0))"/>
@@ -87,6 +88,9 @@
                                          YAggregate="@(e => e.Count(x => x.PacketLossPercent > 10))"/>
                     </ApexChart>
                 </div>
+
+                _hostPacketLossChart?.RenderAsync();
+                _hostDualPingLossChart?.RenderAsync();
                 break;
         }
     </div>
