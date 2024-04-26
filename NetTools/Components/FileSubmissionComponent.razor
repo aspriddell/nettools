@@ -1,0 +1,35 @@
+@typeparam TItem
+@typeparam TOut
+
+@if (Current != null && FileProcessing == null)
+{
+    <HxAlert Color="ThemeColor.Info">
+        <div class="d-flex align-items-center gap-3">
+            <HxIcon Icon="@BootstrapIcon.CheckCircleFill"/>
+            <span><strong>@CurrentFileName</strong> loaded</span>
+
+            <div class="flex-grow-1"></div>
+            <HxButton Color="ThemeColor.Link" OnClick="() => ShowUploadDialog = !ShowUploadDialog">Toggle Upload Dialog</HxButton>
+        </div>
+    </HxAlert>
+}
+
+@if (Current == null && FileProcessing == null || ShowUploadDialog)
+{
+    <HxInputFileDropZone Accept="application/zip,application/json" OnChange="FileSubmitted"/>
+}
+else if (Current == null && FileProcessing != null)
+{
+    <HxAlert Color="ThemeColor.Info">
+        <div class="d-flex align-items-center gap-3">
+            <HxIcon Icon="@BootstrapIcon.InfoCircleFill"/>
+            <span>Processing File...</span>
+
+            @if (FileProcessing?.IsCancellationRequested == false)
+            {
+                <div class="flex-grow-1"></div>
+                <HxButton Color="ThemeColor.Link" OnClick="() => FileProcessing.Cancel()">Cancel</HxButton>
+            }
+        </div>
+    </HxAlert>
+}

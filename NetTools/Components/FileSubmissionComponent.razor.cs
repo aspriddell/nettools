@@ -1,0 +1,97 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
+
+namespace RoutingVisualiser.Components;
+
+public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
+{
+    [Parameter]
+    public IReadOnlyCollection<TOut> Current { get; set; }
+    
+    [Parameter]
+    public EventCallback<IReadOnlyCollection<TOut>> CurrentChanged { get; set; }
+    
+    [Parameter]
+    public Func<IReadOnlyCollection<TItem>, IReadOnlyCollection<TOut>> ProcessItems { get; set; }
+    
+    private string CurrentFileName { get; set; }
+    private bool ShowUploadDialog { get; set; }
+
+    private CancellationTokenSource FileProcessing { get; set; }
+
+    private async Task FileSubmitted(InputFileChangeEventArgs obj)
+    {
+        if (FileProcessing?.IsCancellationRequested != false)
+        {
+            FileProcessing?.Dispose();
+            FileProcessing = new CancellationTokenSource();
+        }
+        
+        IReadOnlyCollection<TItem> results;
+        
+        switch (obj.File.ContentType)
+        {
+            case "application/json":
+            {
+                await using var stream = obj.File.OpenReadStream();
+                var result = await JsonSerializer.DeserializeAsync<TItem>(stream, Program.JsonOptions);
+                results = new[] { result };
+
+                break;
+            }
+
+            case "application/zip":
+            {
+                var memoryStream = new MemoryStream();
+                await using (var file = obj.File.OpenReadStream())
+                {
+                    await file.CopyToAsync(memoryStream).ConfigureAwait(false);
+                }
+
+                using var archive = new ZipArchive(memoryStream, ZipArchiveMode.Read, false);
+                var archiveResults = new List<TItem>(archive.Entries.Count);
+
+                foreach (var entry in archive.Entries.Where(x => Path.GetExtension(x.Name) == ".json"))
+                {
+                    if (FileProcessing.IsCancellationRequested)
+                    {
+                        return;
+                    }
+                    
+                    await using var entryStream = entry.Open();
+
+                    try
+                    {
+                        var result = await JsonSerializer.DeserializeAsync<TItem>(entryStream, Program.JsonOptions);
+                        archiveResults.Add(result);
+                    }
+                    catch
+                    {
+                        // ignore deserialization errors
+                    }
+                }
+
+                results = archiveResults;
+                break;
+            }
+
+            default:
+                return;
+        }
+
+        CurrentFileName = obj.File.Name;
+        Current = ProcessItems.Invoke(results);
+        await CurrentChanged.InvokeAsync(Current);
+        
+        FileProcessing?.Dispose();
+        FileProcessing = null;
+    }
+}
