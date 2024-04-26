@@ -12,21 +12,14 @@
                       Nullable=@(PingResults.Count > 1)
                       TextSelector="@(a => a.Key)"
                       ValueSelector="@(a => a)"/>
-
-            @* spacing *@
-            <div class="flex-grow-1"></div>
-
-            <HxButton Color="ThemeColor.Link" CssClass="text-info text-decoration-none" OnClick="() => ShowUploadDialog = !ShowUploadDialog">
-                Toggle Log Upload
-            </HxButton>
         </div>
     }
 
-    @if (PingResults == null || ShowUploadDialog)
-    {
-        <HxInputFileDropZone Accept="application/zip,application/json" OnChange="SelectedFileChanged"/>
-    }
-    
+    <FileSubmissionComponent TItem="PingResult"
+                             Current="PingResults"
+                             CurrentChanged="SetProcessedItems"
+                             ProcessItems="i => i"/>
+
     @switch (SelectedHost)
     {
         case null when PingResults != null:
@@ -56,7 +49,7 @@
         case not null:
             // plot loss over time and display a table of dates and loss percentages (colour coded)
             Func<PingResult, string> xValue = e => DateTimeOffset.FromUnixTimeSeconds(e.Timestamp).Date.ToShortDateString();
-            
+
             <hr/>
             <div style="height: 40vh">
                 <ApexChart Title="Session Outcomes" Options="@_hostPacketLossChartOptions">
