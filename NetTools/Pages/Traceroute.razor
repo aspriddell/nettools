@@ -2,36 +2,49 @@
 @using NetTools.Models
 
 <div class="d-flex flex-column gap-2">
-    <FileSubmissionComponent TItem="TracerouteResult"
-                             TOut="ILookup<string, TracerouteRouteGroup>"
-                             @bind-Current="HostTraces"
-                             ProcessItems="i => ProcessRoutes(i).ToLookup(x => x.Destination)"/>
-
-    @if (HostTraces?.Any() == true)
+    @if (GeolocationService.MixedHttpPotentiallyBlocked)
     {
-        <div class="d-flex gap-4 align-items-center w-100">
-            <select class="form-select" @onchange="i => SetHost(i.Value?.ToString())">
-                @foreach (var host in HostTraces)
-                {
-                    <option value="@host.Key" selected="@(host.Key == SelectedHost)">@host.Key</option>
-                }
-            </select>
+        <HxAlert Color="ThemeColor.Danger">
+            <div class="d-flex align-items-center gap-2">
+                <HxIcon Icon="@BootstrapIcon.ExclamationTriangleFill"/>
+                <strong class="ps-3">Mixed Mode Block Detected</strong>
+                <span>NetTools was unable to make one or more web requests due to HTTP mixed mode being blocked. Please check your browser settings and try again.</span>
+            </div>
+        </HxAlert>
+    }
+    else
+    {
+        <FileSubmissionComponent TItem="TracerouteResult"
+                                 TOut="ILookup<string, TracerouteRouteGroup>"
+                                 @bind-Current="HostTraces"
+                                 ProcessItems="i => ProcessRoutes(i).ToLookup(x => x.Destination)"/>
+
+        @if (HostTraces?.Any() == true)
+        {
+            <div class="d-flex gap-4 align-items-center w-100">
+                <select class="form-select" @onchange="i => SetHost(i.Value?.ToString())">
+                    @foreach (var host in HostTraces)
+                    {
+                        <option value="@host.Key" selected="@(host.Key == SelectedHost)">@host.Key</option>
+                    }
+                </select>
             
-            <select class="form-select" @onchange="i => SetTrace(HostTraces[SelectedHost].Single(x => x.Id == int.Parse(i.Value.ToString())))">
-                @foreach (var trace in HostTraces[SelectedHost].OrderBy(x => x.Id))
-                {
-                    <option value="@trace.Id" selected="@(trace.Id == SelectedTrace?.Id)">Route @trace.Id.ToString()</option>
-                }
-            </select>
-        </div>
+                <select class="form-select" @onchange="i => SetTrace(HostTraces[SelectedHost].Single(x => x.Id == int.Parse(i.Value.ToString())))">
+                    @foreach (var trace in HostTraces[SelectedHost].OrderBy(x => x.Id))
+                    {
+                        <option value="@trace.Id" selected="@(trace.Id == SelectedTrace?.Id)">Route @trace.Id.ToString()</option>
+                    }
+                </select>
+            </div>
+        }
     }
 
     <hr/>
     <div id="map" class="map-container"></div>
-    
+
     @* spacing *@
     <div></div>
-    
+
     @if (SelectedTrace != null)
     {
         <table class="table">
@@ -64,7 +77,7 @@
                     else
                     {
                         var ipInfo = HostGeolocationCache.GetValueOrDefault(hop.IP);
-                        
+
                         <tr>
                             <th scope="row">@(i++)</th>
                             <td>
