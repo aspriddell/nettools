@@ -1,4 +1,5 @@
 @page "/traceroute"
+@using RoutingVisualiser.Models
 
 <div class="d-flex flex-column gap-3">
     @if (HostTraces?.Any() == true)
@@ -13,25 +14,19 @@
 
             <HxSelect Label="Route"
                       Nullable="false"
-                      Data="@SelectedHost"
-                      @bind-Value="SelectedTrace"
+                      Value="SelectedTrace"
+                      ValueChanged="SetTrace"
+                      Data="@(HostTraces[SelectedHost])"
+                      ValueSelector="@(x => x)"
                       SortKeySelector="x => x.Id"
-                      TextSelector="@(x => $"Route {x.Id}")"
-                      ValueSelector="@(x => x)"/>
-
-            @* spacing *@
-            <div class="flex-grow-1"></div>
-            
-            <HxButton Color="ThemeColor.Link" CssClass="text-info text-decoration-none" OnClick="() => ShowUploadDialog = !ShowUploadDialog">
-                Toggle Log Upload
-            </HxButton>
+                      TextSelector="@(x => $"Route {x.Id}")"/>
         </div>
     }
 
-    @if (ShowUploadDialog || HostTraces?.Any() != true)
-    {
-        <HxInputFileDropZone Accept="application/json,application/zip" OnChange="ProcessArchive"/>
-    }
+    <FileSubmissionComponent TItem="TracerouteResult"
+                             TOut="TracerouteRouteGroup"
+                             @bind-Current="Traces"
+                             ProcessItems="ProcessRoutes"/>
 
     <div id="map" class="map-container"></div>
     
@@ -66,20 +61,20 @@
                     }
                     else
                     {
-                        var ipInfo = GeoIP.TryCity(hop.IP, out var ip) ? ip : null;
-
+                        var ipInfo = HostGeolocationCache.GetValueOrDefault(hop.IP);
+                        
                         <tr>
                             <th scope="row">@(i++)</th>
                             <td>
                                 <div class="d-flex align-items-center gap-3">
-                                    <img alt="country flag" src=@($"https://cdn.jsdelivr.net/gh/ppy/osu-resources@2024.410.0/osu.Game.Resources/Textures/Flags/{ipInfo?.Country.IsoCode?.ToUpperInvariant() ?? "__"}.png") height="20"/>
-                                    @if (!string.IsNullOrEmpty(ipInfo?.City.Name))
+                                    <img alt="country flag" src=@($"https://cdn.jsdelivr.net/gh/ppy/osu-resources@2024.410.0/osu.Game.Resources/Textures/Flags/{ipInfo?.CountryCode?.ToUpperInvariant() ?? "__"}.png") height="20"/>
+                                    @if (!string.IsNullOrEmpty(ipInfo?.City))
                                     {
-                                        <span>@ipInfo.City.Name, @ipInfo.Country.Name</span>
+                                        <span>@ipInfo.City, @ipInfo.Country</span>
                                     }
-                                    else if (!string.IsNullOrEmpty(ipInfo?.Country.Name))
+                                    else if (!string.IsNullOrEmpty(ipInfo?.Country))
                                     {
-                                        <span>@ipInfo.Country.Name</span>
+                                        <span>@ipInfo.Country</span>
                                     }
                                 </div>
                             </td>

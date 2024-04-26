@@ -10,6 +10,7 @@ using MaxMind.GeoIP2;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
+using RoutingVisualiser.Geolocation;
 using RoutingVisualiser.Models;
 
 namespace RoutingVisualiser.Pages;
@@ -19,28 +20,29 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
     private record TracerouteRouteGroup(int Id, string Destination, IReadOnlyList<TracerouteProbe> Hops, IReadOnlyList<DateTimeOffset> TimesEncountered);
 
     private IJSObjectReference _mapRef, _markerLayerRef;
-    private TracerouteRouteGroup _selectedTrace;
+    private IReadOnlyCollection<TracerouteRouteGroup> _traces;
 
-    [Inject]
-    private DatabaseReader GeoIP { get; set; }
-        
     [Inject]
     private IJSRuntime JsRuntime { get; set; }
+    
+    [Inject]
+    private GeolocationService GeolocationService { get; set; }
 
-    private ILookup<string, TracerouteRouteGroup> HostTraces { get; set; }
-    private IGrouping<string, TracerouteRouteGroup> SelectedHost { get; set; }
-
-    private TracerouteRouteGroup SelectedTrace
+    private IReadOnlyCollection<TracerouteRouteGroup> Traces
     {
-        get => _selectedTrace;
+        get => _traces;
         set
         {
-            _selectedTrace = value;
-            _ = PlotRoute(value);
+            _traces = value;
+            HostTraces = value.ToLookup(x => x.Destination);
         }
     }
-
-    private bool ShowUploadDialog { get; set; }
+    
+    private IReadOnlyDictionary<IPAddress, IpGeolocation> HostGeolocationCache { get; set; }
+    private ILookup<string, TracerouteRouteGroup> HostTraces { get; set; }
+    
+    private string SelectedHost { get; set; }
+    private TracerouteRouteGroup SelectedTrace { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -51,75 +53,10 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
         }
     }
 
-    private async Task ProcessArchive(InputFileChangeEventArgs obj)
+    private IReadOnlyCollection<TracerouteRouteGroup> ProcessRoutes(IReadOnlyCollection<TracerouteResult> results)
     {
-        IReadOnlyCollection<TracerouteResult> listing;
-
-        switch (obj.File.ContentType)
-        {
-            case "application/json":
-                try
-                {
-                    await using var stream = obj.File.OpenReadStream();
-                    var result = await JsonSerializer.DeserializeAsync<TracerouteResult>(stream, Program.JsonOptions);
-
-                    listing = new[] { result };
-                    break;
-                }
-                catch
-                {
-                    goto default;
-                }
-
-            case "application/zip":
-            {
-                var tempStream = new MemoryStream();
-                var zipListing = new List<TracerouteResult>();
-
-                await using (var stream = obj.File.OpenReadStream())
-                {
-                    await stream.CopyToAsync(tempStream);
-                }
-
-                using var archiveStream = new ZipArchive(tempStream, ZipArchiveMode.Read, false);
-                zipListing.EnsureCapacity(archiveStream.Entries.Count);
-                    
-                foreach (var entry in archiveStream.Entries.Where(x => !string.IsNullOrEmpty(x.Name)))
-                {
-                    try
-                    {
-                        await using var entryStream = entry.Open();
-                        var deserializedEntry = await JsonSerializer.DeserializeAsync<TracerouteResult>(entryStream, Program.JsonOptions);
-
-                        if (deserializedEntry == null)
-                        {
-                            continue;
-                        }
-
-                        zipListing.Add(deserializedEntry);
-                    }
-                    catch
-                    {
-                        // ignore deserialization errors
-                    }
-                }
-                
-                listing = zipListing;
-                break;
-            }
-            
-            default:
-            {
-                HostTraces = null;
-                SelectedTrace = null;
-
-                await JsRuntime.InvokeVoidAsync("clearLayer", _markerLayerRef);
-                return;
-            }
-        }
-
         var distinctRoutes = new List<TracerouteRouteGroup>();
-        foreach (var hostTraceGroup in listing.OrderBy(x => x.Timestamp).GroupBy(x => x.DestinationName))
+        foreach (var hostTraceGroup in results.OrderBy(x => x.Timestamp).GroupBy(x => x.DestinationName))
         {
             var routeCount = hostTraceGroup.Count();
             var processedRoutes = new List<TracerouteResult>();
@@ -174,14 +111,26 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
                 }
             }
         }
-            
-        HostTraces = distinctRoutes.ToLookup(x => x.Destination);
 
-        SelectedHost = HostTraces.FirstOrDefault();
-        SelectedTrace = SelectedHost?.FirstOrDefault();
+        return distinctRoutes;
     }
+
+    private async Task SetHost(string host)
+    {
+        if (_markerLayerRef != null)
+        {
+            await JsRuntime.InvokeVoidAsync("clearLayer", _markerLayerRef);
+        }
+
+        // get all ips for the host, then resolve all addresses with geolocation service
+        var allIps = HostTraces[host].SelectMany(x => x?.Hops.Select(y => y.IP) ?? Enumerable.Empty<IPAddress>()).ToHashSet();
+        var geolocatedEntries = await GeolocationService.PerformLookup(allIps).ConfigureAwait(false);
         
-    private async Task PlotRoute(TracerouteRouteGroup route)
+        HostGeolocationCache = geolocatedEntries.ToDictionary(x => x.QueryAddress);
+        await SetTrace(HostTraces[host].FirstOrDefault());
+    }
+
+    private async Task SetTrace(TracerouteRouteGroup route)
     {
         if (_markerLayerRef != null)
         {
@@ -193,17 +142,12 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
 
         foreach (var hop in route.Hops.Where(x => x != null))
         {
-            if (!GeoIP.TryCity(hop.IP, out var ipInfo))
-            {
-                continue;
-            }
-
-            if (!ipInfo.Location.HasCoordinates)
+            if (!HostGeolocationCache.TryGetValue(hop.IP, out var ipInfo) || !ipInfo.Latitude.HasValue || !ipInfo.Longitude.HasValue)
             {
                 continue;
             }
                 
-            double[] location = [ipInfo.Location.Latitude.Value, ipInfo.Location.Longitude.Value];
+            double[] location = [ipInfo.Latitude.Value, ipInfo.Longitude.Value];
 
             if (lastLocation?.SequenceEqual(location) != true)
             {
@@ -211,8 +155,9 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
                 lastLocation = location;
             }
         }
-            
-        // map, layer, markers, draw polyline
+
+        // set ui state
+        SelectedTrace = route;
         await JsRuntime.InvokeVoidAsync("addMarkers", _mapRef, _markerLayerRef, markers.ToArray(), true);
     }
 
