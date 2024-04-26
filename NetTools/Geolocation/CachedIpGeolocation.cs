@@ -2,7 +2,7 @@ using System;
 using System.Text.Json.Serialization;
 using Tavenem.DataStorage;
 
-namespace RoutingVisualiser.Geolocation;
+namespace NetTools.Geolocation;
 
 internal class CachedIpGeolocation : IpGeolocation, IIdItem
 {

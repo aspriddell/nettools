@@ -10,10 +10,10 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
-using RoutingVisualiser.Geolocation;
+using NetTools.Geolocation;
 using Tavenem.Blazor.IndexedDB;
 
-namespace RoutingVisualiser;
+namespace NetTools;
 
 public class Program
 {

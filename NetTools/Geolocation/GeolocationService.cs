@@ -12,7 +12,7 @@ using Nito.AsyncEx;
 using Riok.Mapperly.Abstractions;
 using Tavenem.Blazor.IndexedDB;
 
-namespace RoutingVisualiser.Geolocation;
+namespace NetTools.Geolocation;
 
 /// <summary>
 /// Provides geolocation information for IP addresses with caching and rate limit handling
@@ -123,7 +123,7 @@ public partial class GeolocationService
         {
             var output = new LinkedList<IpGeolocation>();
 
-            await foreach (var item in _geolocationCache.GetAllAsync(NetToolsSerializerContext.Default.CachedIpGeolocation))
+            await foreach (var item in _geolocationCache.GetAllAsync<CachedIpGeolocation>(NetToolsSerializerContext.Default.CachedIpGeolocation))
             {
                 if (publiclyRoutable.Contains(item.QueryAddress) && item.CreatedEpoch > cacheIgnoreBefore)
                 {
@@ -197,7 +197,7 @@ public partial class GeolocationService
                     else
                     {
                         var collectionListing = new List<IpGeolocation>();
-                        await foreach (var item in httpResponse.Content.ReadFromJsonAsAsyncEnumerable(NetToolsSerializerContext.Default.IpGeolocation).ConfigureAwait(false))
+                        await foreach (var item in httpResponse.Content.ReadFromJsonAsAsyncEnumerable(NetToolsSerializerContext.Default.IpGeolocation).ConfigureAwait<IpGeolocation>(false))
                         {
                             await _geolocationCache.StoreItemAsync(MappingUtils.ToCachedIpGeolocation(item), NetToolsSerializerContext.Default.CachedIpGeolocation).ConfigureAwait(false);
                             collectionListing.Add(item);

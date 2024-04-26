@@ -1,6 +1,6 @@
 using System;
 
-namespace RoutingVisualiser.Geolocation;
+namespace NetTools.Geolocation;
 
 /// <summary>
 /// Represents the fields that can be requested from the ip-api.com service.

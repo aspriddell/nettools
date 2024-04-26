@@ -4,7 +4,7 @@ using System.Net.Http;
 using DragonFruit.Data;
 using DragonFruit.Data.Requests;
 
-namespace RoutingVisualiser.Geolocation;
+namespace NetTools.Geolocation;
 
 /// <summary>
 /// Request for batch geolocation lookups using the ip-api.com service.

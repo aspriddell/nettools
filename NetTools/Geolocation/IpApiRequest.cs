@@ -2,7 +2,7 @@ using System.Net;
 using DragonFruit.Data;
 using DragonFruit.Data.Requests;
 
-namespace RoutingVisualiser.Geolocation;
+namespace NetTools.Geolocation;
 
 /// <summary>
 /// Request for info about a single IP address using the ip-api.com service.

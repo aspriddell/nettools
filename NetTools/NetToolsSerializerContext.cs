@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Text.Json.Serialization;
-using RoutingVisualiser.Geolocation;
-using RoutingVisualiser.Models;
+using NetTools.Geolocation;
+using NetTools.Models;
 
-namespace RoutingVisualiser;
+namespace NetTools;
 
 [JsonSerializable(typeof(IpGeolocation)), JsonSerializable(typeof(CachedIpGeolocation)), JsonSerializable(typeof(IEnumerable<IPAddress>))]
 [JsonSerializable(typeof(TracerouteResult)), JsonSerializable(typeof(TracerouteProbe))]

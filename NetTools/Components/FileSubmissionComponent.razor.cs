@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.Logging;
 
-namespace RoutingVisualiser.Components;
+namespace NetTools.Components;
 
 public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
 {

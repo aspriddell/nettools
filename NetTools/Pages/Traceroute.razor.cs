@@ -1,19 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net;
-using System.Text.Json;
 using System.Threading.Tasks;
-using MaxMind.GeoIP2;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
-using RoutingVisualiser.Geolocation;
-using RoutingVisualiser.Models;
+using NetTools.Geolocation;
+using NetTools.Models;
+using GeolocationService = NetTools.Geolocation.GeolocationService;
 
-namespace RoutingVisualiser.Pages;
+namespace NetTools.Pages;
 
 public partial class Traceroute : ComponentBase, IAsyncDisposable
 {

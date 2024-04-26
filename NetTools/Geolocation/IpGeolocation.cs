@@ -3,7 +3,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace RoutingVisualiser.Geolocation;
+namespace NetTools.Geolocation;
 
 /// <summary>
 /// Response containing information about a queried IP address.

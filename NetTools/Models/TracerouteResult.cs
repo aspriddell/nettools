@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text.Json.Serialization;
 
-namespace RoutingVisualiser.Models;
+namespace NetTools.Models;
 
 internal record TracerouteResult(
     long Timestamp,

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Net;
 
-namespace RoutingVisualiser.Models;
+namespace NetTools.Models;
 
 internal record PingResult(
     IPAddress DestinationIP,
