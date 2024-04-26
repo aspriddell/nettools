@@ -11,12 +11,13 @@ namespace RoutingVisualiser.Geolocation;
 /// </summary>
 internal partial class BatchIpApiRequest(IEnumerable<IPAddress> addresses) : ApiRequest
 {
-    public override string RequestPath => "https://ip-api.com/batch";
+    public override string RequestPath => "http://ip-api.com/batch";
     public override HttpMethod RequestMethod => HttpMethod.Post;
     
-    [EnumOptions(EnumOption.Numeric)]
-    [RequestParameter(ParameterType.Query, "fields")]
     public GeolocationFields? Fields { get; set; }
+
+    [RequestParameter(ParameterType.Query, "fields")]
+    protected int? FieldValue => (int?)Fields;
     
     [RequestParameter(ParameterType.Query, "lang")]
     public string Language { get; set; }
