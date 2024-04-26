@@ -5,12 +5,21 @@
     <h3>Use the buttons at the top to get started.</h3>
 </div>
 
-<h4>What files can be uploaded?</h4>
-<p>Upload boxes accept either a single <code>.json</code> file or a <code>.zip</code> file of .json files. You can use the processor with:</p>
-<ul>
-    <li><code>ping</code> (jc)</li>
-    <li><code>traceroute</code> (jc)</li>
-    <li><code>wget</code> (custom regexes)</li>
-</ul>
-
-<p>Alternatively, the JSON files can be produced for any program that uses <code>jc</code> outputs, with an additional property <code>timestamp</code> containing a unix epoch of the time the response was generated.</p>
+<div class="d-flex flex-column gap-2">
+    <div>
+        <h4>What files can be uploaded?</h4>
+        <p>
+            Upload boxes accept either a single <code>.json</code> file or a <code>.zip</code> file containing a collection of <code>.json</code> files.
+            <br/>
+            These files can be obtained by passing the output of the program through <code>jc</code>. Additional features can be used when a <code>timestamp</code> property is added to all files, containing a unix epoch the tool was run.
+        </p>
+    </div>
+    <div>
+        <h4>What data is submitted to the server?</h4>
+        <p>
+            All processing is done on-device (this is a WebAssembly program) except geolocation data where needed (i.e. traceroute).
+            <br/>
+            You will need to <strong>ensure HTTP mixed content is allowed</strong> your browser otherwise these requests will fail.
+        </p>
+    </div>
+</div>
