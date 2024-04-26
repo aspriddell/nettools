@@ -73,6 +73,8 @@ public partial class GeolocationService
 
         _cooldownWaiter = LoadCooldownInformation().AsTask();
     }
+    
+    public bool MixedHttpPotentiallyBlocked { get; set; }
 
     /// <summary>
     /// Task that once completed, ratelimits have been reset.
@@ -173,10 +175,23 @@ public partial class GeolocationService
                     request = new BatchIpApiRequest(missing.Take(100)) { Fields = ResponseFields };
                     _logger.LogInformation("Making a batch request for {count} addresses", missing.Count);
                 }
-
+                
+                HttpResponseMessage httpResponse;
+                
                 try
                 {
-                    using var httpResponse = await _client.PerformAsync(request).ConfigureAwait(false);
+                    httpResponse = await _client.PerformAsync(request).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Request failed with exception: {exception}", e.Message);
+                    MixedHttpPotentiallyBlocked = true;
+
+                    return resultsChain.ToList();
+                }
+
+                using (httpResponse)
+                {
                     await ProcessRatelimitUpdate(httpResponse).ConfigureAwait(false);
 
                     if (!httpResponse.IsSuccessStatusCode)
@@ -207,11 +222,6 @@ public partial class GeolocationService
 
                         resultsChain = resultsChain.Concat(collectionListing);
                     }
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Failed to perform geolocation lookup: {message}", e.Message);
-                    break;
                 }
             }
 
