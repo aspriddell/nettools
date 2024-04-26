@@ -20,7 +20,7 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
     private record TracerouteRouteGroup(int Id, string Destination, IReadOnlyList<TracerouteProbe> Hops, IReadOnlyList<DateTimeOffset> TimesEncountered);
 
     private IJSObjectReference _mapRef, _markerLayerRef;
-    private IReadOnlyCollection<TracerouteRouteGroup> _traces;
+    private ILookup<string, TracerouteRouteGroup> _hostTraces;
 
     [Inject]
     private IJSRuntime JsRuntime { get; set; }
@@ -28,19 +28,18 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
     [Inject]
     private GeolocationService GeolocationService { get; set; }
 
-    private IReadOnlyCollection<TracerouteRouteGroup> Traces
+    private IReadOnlyDictionary<IPAddress, IpGeolocation> HostGeolocationCache { get; set; }
+
+    private ILookup<string, TracerouteRouteGroup> HostTraces
     {
-        get => _traces;
+        get => _hostTraces;
         set
         {
-            _traces = value;
-            HostTraces = value.ToLookup(x => x.Destination);
+            _hostTraces = value;
+            _ = SetHost(value.FirstOrDefault()?.Key);
         }
     }
-    
-    private IReadOnlyDictionary<IPAddress, IpGeolocation> HostGeolocationCache { get; set; }
-    private ILookup<string, TracerouteRouteGroup> HostTraces { get; set; }
-    
+
     private string SelectedHost { get; set; }
     private TracerouteRouteGroup SelectedTrace { get; set; }
 
@@ -122,6 +121,11 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
             await JsRuntime.InvokeVoidAsync("clearLayer", _markerLayerRef);
         }
 
+        if (string.IsNullOrEmpty(host))
+        {
+            _ = SetTrace(null);
+        }
+
         // get all ips for the host, then resolve all addresses with geolocation service
         var allIps = HostTraces[host].SelectMany(x => x?.Hops.Select(y => y.IP) ?? Enumerable.Empty<IPAddress>()).ToHashSet();
         var geolocatedEntries = await GeolocationService.PerformLookup(allIps).ConfigureAwait(false);
@@ -135,6 +139,12 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
         if (_markerLayerRef != null)
         {
             await JsRuntime.InvokeVoidAsync("clearLayer", _markerLayerRef);
+        }
+
+        if (route == null)
+        {
+            SelectedTrace = null;
+            return;
         }
 
         double[] lastLocation = null;

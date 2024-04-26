@@ -5,17 +5,20 @@
     @if (HostTraces?.Any() == true)
     {
         <div class="d-flex gap-4 align-items-center w-100">
-            <HxSelect Label="Host"
+            <HxSelect TItem="string"
+                      TValue="string"
+                      Label="Host"
                       Nullable="false"
-                      Data="@HostTraces"
-                      @bind-Value="SelectedHost"
-                      TextSelector="@(x => x.Key)"
-                      ValueSelector="@(x => x)"/>
+                      Value="SelectedHost"
+                      ValueChanged="i => SetHost(i)"
+                      Data="@HostTraces.Select(x => x.Key)"/>
 
-            <HxSelect Label="Route"
+            <HxSelect TItem="TracerouteRouteGroup"
+                      TValue="TracerouteRouteGroup"
+                      Label="Route"
                       Nullable="false"
                       Value="SelectedTrace"
-                      ValueChanged="SetTrace"
+                      ValueChanged="i => SetTrace(i)"
                       Data="@(HostTraces[SelectedHost])"
                       ValueSelector="@(x => x)"
                       SortKeySelector="x => x.Id"
@@ -24,9 +27,9 @@
     }
 
     <FileSubmissionComponent TItem="TracerouteResult"
-                             TOut="TracerouteRouteGroup"
-                             @bind-Current="Traces"
-                             ProcessItems="ProcessRoutes"/>
+                             TOut="ILookup<string, TracerouteRouteGroup>"
+                             @bind-Current="HostTraces"
+                             ProcessItems="i => ProcessRoutes(i).ToLookup(x => x.Destination)"/>
 
     <div id="map" class="map-container"></div>
     
