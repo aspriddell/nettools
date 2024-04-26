@@ -123,26 +123,18 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
         
         if (string.IsNullOrEmpty(host))
         {
+            SelectedHost = null;
             SelectedTrace = null;
             return;
         }
 
         // get all ips for the host, then resolve all addresses with geolocation service
-        ISet<IPAddress> allIps;
-
-        try
-        {
-            allIps = HostTraces[host].SelectMany(x => x.Hops?.Select(y => y?.IP) ?? Enumerable.Empty<IPAddress>()).Where(y => y != null).ToHashSet();
-        }
-        catch (Exception ex)
-        {
-            await JsRuntime.InvokeVoidAsync("console.error", ex.GetType().Name, ex.Message, ex.StackTrace);
-            return;
-        }
-
+        var allIps = HostTraces[host].SelectMany(x => x.Hops?.Select(y => y?.IP) ?? Enumerable.Empty<IPAddress>()).Where(y => y != null).ToHashSet();
         var geolocatedEntries = await GeolocationService.PerformLookup(allIps).ConfigureAwait(false);
 
+        SelectedHost = host;
         HostGeolocationCache = geolocatedEntries.ToDictionary(x => x.QueryAddress);
+
         await SetTrace(HostTraces[host].FirstOrDefault());
     }
 
@@ -180,6 +172,9 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
 
         // set ui state
         SelectedTrace = route;
+        SelectedHost = route.Destination;
+
+        await InvokeAsync(StateHasChanged);
         await JsRuntime.InvokeVoidAsync("addMarkers", _mapRef, _markerLayerRef, markers.ToArray(), true);
     }
 
