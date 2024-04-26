@@ -138,6 +138,12 @@ public partial class GeolocationService
                 {
                     purgeNeeded = true;
                 }
+
+                // stop if all addresses were found
+                if (output.Count == publiclyRoutable.Count)
+                {
+                    break;
+                }
             }
 
             if (purgeNeeded && _purgeTask?.Status != TaskStatus.Running)
