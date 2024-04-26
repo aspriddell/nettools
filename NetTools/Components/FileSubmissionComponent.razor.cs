@@ -14,13 +14,13 @@ namespace RoutingVisualiser.Components;
 public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
 {
     [Parameter]
-    public IReadOnlyCollection<TOut> Current { get; set; }
+    public TOut Current { get; set; }
     
     [Parameter]
-    public EventCallback<IReadOnlyCollection<TOut>> CurrentChanged { get; set; }
+    public EventCallback<TOut> CurrentChanged { get; set; }
     
     [Parameter]
-    public Func<IReadOnlyCollection<TItem>, IReadOnlyCollection<TOut>> ProcessItems { get; set; }
+    public Func<IReadOnlyCollection<TItem>, TOut> ProcessItems { get; set; }
     
     private string CurrentFileName { get; set; }
     private bool ShowUploadDialog { get; set; }

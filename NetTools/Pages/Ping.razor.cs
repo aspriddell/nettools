@@ -72,9 +72,9 @@ public partial class Ping : ComponentBase
     private ILookup<string, PingResult> PingResults { get; set; }
     private IGrouping<string, PingResult> SelectedHost { get; set; }
 
-    private void SetProcessedItems(IReadOnlyCollection<PingResult> results)
+    private void SetProcessedItems(ILookup<string, PingResult> results)
     {
-        PingResults = results.OrderBy(x => x.Timestamp).ToLookup(x => x.Destination);
+        PingResults = results;
         SelectedHost = PingResults.Count == 1 ? PingResults.First() : null;
      }
 }

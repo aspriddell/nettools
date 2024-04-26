@@ -16,9 +16,10 @@
     }
 
     <FileSubmissionComponent TItem="PingResult"
+                             TOut="ILookup<string, PingResult>"
                              Current="PingResults"
                              CurrentChanged="SetProcessedItems"
-                             ProcessItems="i => i"/>
+                             ProcessItems="y => y.OrderBy(x => x.Timestamp).ToLookup(x => x.Destination)"/>
 
     @switch (SelectedHost)
     {
