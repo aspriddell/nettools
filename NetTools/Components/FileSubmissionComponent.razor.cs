@@ -45,9 +45,11 @@ public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
         ShowUploadDialog = false;
         
         IReadOnlyCollection<TItem> results;
+        Logger.LogInformation("Processing file {type}", obj.File.ContentType);
         
         switch (obj.File.ContentType)
         {
+            case "text/json":
             case "application/json":
             {
                 await using var stream = obj.File.OpenReadStream();
@@ -58,11 +60,14 @@ public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
             }
 
             case "application/zip":
+            case "application/x-zip":
+            case "application/x-zip-compressed":
             {
                 var memoryStream = new MemoryStream();
                 await using (var file = obj.File.OpenReadStream())
                 {
                     await file.CopyToAsync(memoryStream).ConfigureAwait(false);
+                    memoryStream.Seek(0, SeekOrigin.Begin);
                 }
 
                 using var archive = new ZipArchive(memoryStream, ZipArchiveMode.Read, false);
