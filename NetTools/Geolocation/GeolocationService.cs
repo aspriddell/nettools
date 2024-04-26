@@ -7,6 +7,7 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Blazored.LocalStorage;
 using DragonFruit.Data;
+using Microsoft.Extensions.Logging;
 using Nito.AsyncEx;
 using Riok.Mapperly.Abstractions;
 using Tavenem.Blazor.IndexedDB;
@@ -44,7 +45,8 @@ public partial class GeolocationService
     private readonly IndexedDbService _geolocationCache;
     private readonly ILocalStorageService _localStorage;
     private readonly ApiClient _client;
-    
+    private readonly ILogger<GeolocationService> _logger;
+
     private readonly AsyncLock _lock = new();
     private readonly IEnumerable<IPNetwork2> _privateNetworks = new[]
     {
@@ -62,11 +64,12 @@ public partial class GeolocationService
 
     private Task _cooldownWaiter;
 
-    public GeolocationService(IndexedDbService geolocationCache, ILocalStorageService localStorage, ApiClient client)
+    public GeolocationService(IndexedDbService geolocationCache, ILocalStorageService localStorage, ApiClient client, ILogger<GeolocationService> logger)
     {
         _geolocationCache = geolocationCache;
         _localStorage = localStorage;
         _client = client;
+        _logger = logger;
 
         _cooldownWaiter = LoadCooldownInformation().AsTask();
     }
@@ -103,28 +106,43 @@ public partial class GeolocationService
     /// </summary>
     public async Task<IReadOnlyCollection<IpGeolocation>> PerformLookup(IEnumerable<IPAddress> addresses)
     {
-        var publiclyRoutable = addresses.Select(x => x.IsIPv4MappedToIPv6 ? x.MapToIPv4() : x).Where(x => _privateNetworks.All(n => !n.Contains(x))).ToList();
+        var publiclyRoutable = addresses
+            .Select(x => x.IsIPv4MappedToIPv6 ? x.MapToIPv4() : x)
+            .Where(x => _privateNetworks.All(n => !n.Contains(x)))
+            .ToHashSet();
 
         if (publiclyRoutable.Count == 0)
         {
             return Array.Empty<IpGeolocation>();
         }
 
-        var addressStrings = publiclyRoutable.Select(x => x.ToString()).ToList();
         var cacheIgnoreBefore = DateTimeOffset.UtcNow.AddDays(-CacheExpiryDays).ToUnixTimeSeconds();
+        _logger.LogInformation("Performing cache lookup for {count} addresses", publiclyRoutable.Count);
 
-        // cache the method used for quick reuse
-        Task<IReadOnlyList<CachedIpGeolocation>> CheckCache() => _geolocationCache
-            .Query(NetToolsSerializerContext.Default.CachedIpGeolocation)
-            .Where(x => addressStrings.Contains(x.Id) && x.CreatedEpoch < cacheIgnoreBefore)
-            .ToListAsync();
+        async Task<IReadOnlyCollection<IpGeolocation>> CheckCache()
+        {
+            var output = new LinkedList<IpGeolocation>();
+
+            await foreach (var item in _geolocationCache.GetAllAsync(NetToolsSerializerContext.Default.CachedIpGeolocation))
+            {
+                if (publiclyRoutable.Contains(item.QueryAddress) && item.CreatedEpoch > cacheIgnoreBefore)
+                {
+                    output.AddLast(item);
+                }
+            }
+
+            return output;
+        }
 
         var cachedResults = await CheckCache().ConfigureAwait(false);
         var missing = publiclyRoutable.Except(cachedResults.Select(x => x.QueryAddress)).ToHashSet();
+        
+        _logger.LogInformation("Missing {count} from cache (discovered {n} total)", missing.Count, cachedResults.Count);
 
         // return cached results only if all requested addresses are cached or there's a cooldown in effect that hasn't cleared.
         if (missing.Count == 0 || CooldownWaiter?.IsCompleted == false)
         {
+            _logger.LogInformation("All addresses were found cached or a cooldown is active and cannot process any more requests.");
             return cachedResults;
         }
 
@@ -136,47 +154,65 @@ public partial class GeolocationService
 
             if (missing.Count == 0)
             {
+                _logger.LogInformation("All addresses were found cached.");
                 return cachedResults;
             }
 
             IEnumerable<IpGeolocation> resultsChain = cachedResults;
             
-            while (CooldownWaiter?.IsCompleted != false && missing.Count > 0)
+            while (CooldownWaiter?.IsCompleted == true && missing.Count > 0)
             {
-                ApiRequest request = missing.Count == 1 ? new IpApiRequest(missing.Single()) { Fields = ResponseFields } : new BatchIpApiRequest(missing.Take(100)) { Fields = ResponseFields };
-                using var httpResponse = await _client.PerformAsync(request).ConfigureAwait(false);
-            
-                await ProcessRatelimitUpdate(httpResponse).ConfigureAwait(false);
-
-                // deserialize single item
-                if (request is IpApiRequest)
+                ApiRequest request;
+                if (missing.Count == 1)
                 {
-                    var item = await httpResponse.Content.ReadFromJsonAsync(NetToolsSerializerContext.Default.IpGeolocation).ConfigureAwait(false);
-                    await _geolocationCache.StoreItemAsync(MappingUtils.ToCachedIpGeolocation(item)).ConfigureAwait(false);
-
-                    resultsChain = resultsChain.Append(item);
-                    missing.Remove(item.QueryAddress);
+                    request = new IpApiRequest(missing.Single()) { Fields = ResponseFields };
+                    _logger.LogInformation("Making a single request for {address}", missing.Single().ToString());
                 }
                 else
                 {
-                    var collectionListing = new List<IpGeolocation>();
-                    await foreach (var item in httpResponse.Content.ReadFromJsonAsAsyncEnumerable(NetToolsSerializerContext.Default.IpGeolocation).ConfigureAwait(false))
-                    {
-                        await _geolocationCache.StoreItemAsync(MappingUtils.ToCachedIpGeolocation(item)).ConfigureAwait(false);
-                        collectionListing.Add(item);
+                    request = new BatchIpApiRequest(missing.Take(100)) { Fields = ResponseFields };
+                    _logger.LogInformation("Making a batch request for {count} addresses", missing.Count);
+                }
 
-                        missing.Remove(item.QueryAddress);
+                try
+                {
+                    using var httpResponse = await _client.PerformAsync(request).ConfigureAwait(false);
+                    await ProcessRatelimitUpdate(httpResponse).ConfigureAwait(false);
+
+                    if (!httpResponse.IsSuccessStatusCode)
+                    {
+                        _logger.LogWarning("Request failed with status {status}: {reason}", httpResponse.StatusCode, await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false));
+                        break;
                     }
 
-                    resultsChain = resultsChain.Concat(collectionListing);
+                    // deserialize single item
+                    if (request is IpApiRequest)
+                    {
+                        var item = await httpResponse.Content.ReadFromJsonAsync(NetToolsSerializerContext.Default.IpGeolocation).ConfigureAwait(false);
+                        await _geolocationCache.StoreItemAsync(MappingUtils.ToCachedIpGeolocation(item), NetToolsSerializerContext.Default.CachedIpGeolocation).ConfigureAwait(false);
+
+                        resultsChain = resultsChain.Append(item);
+                        missing.Remove(item.QueryAddress);
+                    }
+                    else
+                    {
+                        var collectionListing = new List<IpGeolocation>();
+                        await foreach (var item in httpResponse.Content.ReadFromJsonAsAsyncEnumerable(NetToolsSerializerContext.Default.IpGeolocation).ConfigureAwait(false))
+                        {
+                            await _geolocationCache.StoreItemAsync(MappingUtils.ToCachedIpGeolocation(item), NetToolsSerializerContext.Default.CachedIpGeolocation).ConfigureAwait(false);
+                            collectionListing.Add(item);
+
+                            missing.Remove(item.QueryAddress);
+                        }
+
+                        resultsChain = resultsChain.Concat(collectionListing);
+                    }
                 }
-            }
-            
-            // recycle the cache (remove expired entries)
-            var expiredEntries = _geolocationCache.Query(NetToolsSerializerContext.Default.CachedIpGeolocation).Where(x => x.CreatedEpoch < cacheIgnoreBefore);
-            await foreach (var expiredEntry in expiredEntries.AsAsyncEnumerable())
-            {
-                await _geolocationCache.RemoveItemAsync(expiredEntry).ConfigureAwait(false);
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Failed to perform geolocation lookup: {message}", e.Message);
+                    break;
+                }
             }
 
             return resultsChain.ToList();
