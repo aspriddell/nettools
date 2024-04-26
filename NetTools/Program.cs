@@ -9,6 +9,7 @@ using Havit.Blazor.Components.Web;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.JSInterop;
 using RoutingVisualiser.Geolocation;
 using Tavenem.Blazor.IndexedDB;
 
@@ -47,8 +48,8 @@ public class Program
 
         // blazor services
         builder.Services.AddHxServices();
-        builder.Services.AddIndexedDb(new IndexedDb(IndexDbName, 1, "geocache"), JsonOptions);
         builder.Services.AddBlazoredLocalStorageAsSingleton(c => c.JsonSerializerOptions = JsonOptions);
+        builder.Services.AddSingleton(s => new IndexedDbService(s.GetRequiredService<IJSRuntime>(), new IndexedDb(IndexDbName, 1, "geocache"), JsonOptions));
 
         builder.Services.AddSingleton<GeolocationService>();
 
