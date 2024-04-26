@@ -49,7 +49,7 @@
 
         case not null:
             // plot loss over time and display a table of dates and loss percentages (colour coded)
-            Func<PingResult, string> xValue = e => DateTimeOffset.FromUnixTimeSeconds(e.Timestamp).Date.ToShortDateString();
+            Func<PingResult, string> xValue = e => e.Timestamp.HasValue ? DateTimeOffset.FromUnixTimeSeconds(e.Timestamp.Value).Date.ToShortDateString() : "\u221e";
 
             <hr/>
             <div style="height: 40vh">
@@ -69,6 +69,23 @@
                     <ApexPointSeries Name="Extreme Loss" SeriesType="SeriesType.Bar" ShowDataLabels
                                      Items="@SelectedHost" OrderBy="e => e.X" XValue="xValue"
                                      YAggregate="@(e => e.Count(x => x.PacketLossPercent > 10))"/>
+                </ApexChart>
+            </div>
+            
+            <div style="height:40vh">
+                <ApexChart Title="Loss Rate/Ping" Options="_hostDualPingLossChartOptions">
+                    @* apex charts expects datetimes to be in millisecond epoch form (hence the *1000) *@
+                    <ApexPointSeries Name="Average Ping"
+                                     SeriesType="SeriesType.Line"
+                                     Items="@SelectedHost.Where(x => x.Timestamp.HasValue)"
+                                     XValue="x => x.Timestamp!.Value * 1000"
+                                     YValue="@(e => (decimal)e.Responses.Average(y => y.TimeMs))"/>
+
+                    <ApexPointSeries Name="Loss Rate"
+                                     SeriesType="SeriesType.Bar"
+                                     Items="@SelectedHost.Where(x => x.Timestamp.HasValue)"
+                                     XValue="x => x.Timestamp!.Value * 1000"
+                                     YValue="@(e => (decimal)e.PacketLossPercent)"/>
                 </ApexChart>
             </div>
             break;

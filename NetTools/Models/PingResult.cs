@@ -15,7 +15,7 @@ internal record PingResult(
     float RoundTripTimeMax,
     float RoundTripTimeAvg,
     float RoundTripTimeStddev,
-    long Timestamp,
+    long? Timestamp,
     IReadOnlyList<PingResponse> Responses);
 
 internal record PingResponse(
