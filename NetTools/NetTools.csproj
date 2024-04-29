@@ -14,7 +14,6 @@
       <PackageReference Include="IPNetwork2" Version="3.0.667" />
       <PackageReference Include="Macross.Json.Extensions" Version="3.0.0" />
       <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-      <PackageReference Include="MaxMind.GeoIP2" Version="5.2.0" />
       <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.4" />
       <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.4" />
       <PackageReference Include="Nito.AsyncEx.Coordination" Version="5.1.2" />
