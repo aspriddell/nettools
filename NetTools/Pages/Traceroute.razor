@@ -47,9 +47,11 @@
             <thead>
             <tr>
                 <th scope="col">Hop #</th>
-                <th scope="col">Hostname</th>
                 <th scope="col">Country</th>
-                <th scope="col">IP</th>
+                <th scope="col">IP Address</th>
+                <th scope="col">Hostname</th>
+                <th scope="col">ISP/AS</th>
+                <th scope="col">Organisation</th>
                 <th scope="col">RTT (ms)</th>
                 <th scope="col">Hop Distance</th>
             </tr>
@@ -83,6 +85,8 @@
                             <td>-</td>
                             <td>-</td>
                             <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
                         </tr>
                     }
                     else if (ipInfo == null)
@@ -101,8 +105,10 @@
                                     <img alt="country flag" src="https://cdn.jsdelivr.net/gh/ppy/osu-resources@2024.410.0/osu.Game.Resources/Textures/Flags/__.png" height="20"/>
                                 </div>
                             </td>
-                            <td>@hop.Name</td>
                             <td>@hop.IP.ToString()</td>
+                            <td><code>@hop.Name</code></td>
+                            <td>-</td>
+                            <td>-</td>
                             <td>@hop.RoundtripTimeMs.ToString("f3")</td>
                             <td>-</td>
                         </tr>
@@ -134,8 +140,10 @@
                                     }
                                 </div>
                             </td>
-                            <td>@hop.Name</td>
                             <td>@hop.IP.ToString()</td>
+                            <td><code>@hop.Name</code></td>
+                            <td>@ipInfo.AsName</td>
+                            <td>@ipInfo.Organisation</td>
                             <td>@hop.RoundtripTimeMs.ToString("f3")</td>
                             @if (IgnoredHops.Contains(hop.IP))
                             {
@@ -156,6 +164,8 @@
                 // summary row
                 <tr>
                     <td></td>
+                    <th></th>
+                    <th></th>
                     <th></th>
                     <th></th>
                     <th></th>
