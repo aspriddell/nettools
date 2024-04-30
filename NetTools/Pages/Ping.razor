@@ -102,24 +102,7 @@
                 // plot loss over time and display a table of dates and loss percentages (colour coded)
                 Func<PingResult, string> xValue = e => e.Timestamp.HasValue ? DateTimeOffset.FromUnixTimeSeconds(e.Timestamp.Value).Date.ToShortDateString() : "\u221e";
 
-                <div style="height: 40vh">
-                    <ApexChart Title="Loss Rate/Ping" Options="_hostDualPingLossChartOptions" @ref="_hostDualPingLossChart">
-                        @* apex charts expects datetimes to be in millisecond epoch form (hence the *1000) *@
-                        <ApexPointSeries Name="Average Ping"
-                                         SeriesType="SeriesType.Line"
-                                         Items="@SelectedHost.Where(x => x.Timestamp.HasValue)"
-                                         XValue="x => x.Timestamp!.Value * 1000"
-                                         YValue="@(e => (decimal)Math.Round(e.Responses.Average(y => y.TimeMs), 3))"/>
-
-                        <ApexPointSeries Name="Loss Rate"
-                                         SeriesType="SeriesType.Bar"
-                                         Items="@SelectedHost.Where(x => x.Timestamp.HasValue)"
-                                         XValue="x => x.Timestamp!.Value * 1000"
-                                         YValue="@(e => (decimal)e.PacketLossPercent)"/>
-                    </ApexChart>
-                </div>
-
-                <div style="height: 45vh">
+                <div style="height: 25vh">
                     <ApexChart Title="Session Outcomes" Options="@_hostPacketLossChartOptions" @ref="_hostPacketLossChart">
                         <ApexPointSeries Name="Loss-free" SeriesType="SeriesType.Bar" ShowDataLabels
                                          Items="@SelectedHost" OrderBy="e => e.X" XValue="xValue"
@@ -136,6 +119,23 @@
                         <ApexPointSeries Name="Extreme Loss" SeriesType="SeriesType.Bar" ShowDataLabels
                                          Items="@SelectedHost" OrderBy="e => e.X" XValue="xValue"
                                          YAggregate="@(e => e.Count(x => x.PacketLossPercent > 10))"/>
+                    </ApexChart>
+                </div>
+
+                <div style="height: 40vh">
+                    <ApexChart Title="Response Rate (w/ loss rate)" Options="_hostDualPingLossChartOptions" @ref="_hostDualPingLossChart">
+                        @* apex charts expects datetimes to be in millisecond epoch form (hence the *1000) *@
+                        <ApexPointSeries Name="Average Ping"
+                                         SeriesType="SeriesType.Line"
+                                         Items="@SelectedHost.Where(x => x.Timestamp.HasValue)"
+                                         XValue="x => x.Timestamp!.Value * 1000"
+                                         YValue="@(e => (decimal)Math.Round(e.Responses.Average(y => y.TimeMs), 3))"/>
+
+                        <ApexPointSeries Name="Loss Rate"
+                                         SeriesType="SeriesType.Bar"
+                                         Items="@SelectedHost.Where(x => x.Timestamp.HasValue)"
+                                         XValue="x => x.Timestamp!.Value * 1000"
+                                         YValue="@(e => (decimal)e.PacketLossPercent)"/>
                     </ApexChart>
                 </div>
 
