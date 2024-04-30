@@ -1,16 +1,11 @@
 @page "/traceroute"
+@using global::Geolocation
 @using NetTools.Models
 
 <div class="d-flex flex-column gap-2">
     @if (GeolocationService.MixedHttpPotentiallyBlocked)
     {
-        <HxAlert Color="ThemeColor.Danger">
-            <div class="d-flex align-items-center gap-2">
-                <HxIcon Icon="@BootstrapIcon.ExclamationTriangleFill"/>
-                <strong class="ps-3">Mixed Mode Block Detected</strong>
-                <span>NetTools was unable to make one or more web requests due to HTTP mixed mode being blocked. Please check your browser settings and try again.</span>
-            </div>
-        </HxAlert>
+        <MixedHttpRequestAlert/>
     }
     else
     {
@@ -21,15 +16,16 @@
 
         @if (HostTraces?.Any() == true)
         {
-            <div class="d-flex gap-4 align-items-center w-100">
-                <select class="form-select" @onchange="i => SetHost(i.Value?.ToString())">
+            // custom dropdown as HxSelect doesn't like how we do it...
+            <div class="d-flex gap-4 align-items-center flex-wrap">
+                <select class="form-select" style="width: unset" @onchange="i => SetHost(i.Value?.ToString())">
                     @foreach (var host in HostTraces)
                     {
                         <option value="@host.Key" selected="@(host.Key == SelectedHost)">@host.Key</option>
                     }
                 </select>
-            
-                <select class="form-select" @onchange="i => SetTrace(HostTraces[SelectedHost].Single(x => x.Id == int.Parse(i.Value.ToString())))">
+
+                <select class="form-select" style="width: unset" @onchange="i => SetTrace(HostTraces[SelectedHost].Single(x => x.Id == int.Parse(i.Value.ToString())))">
                     @foreach (var trace in HostTraces[SelectedHost].OrderBy(x => x.Id))
                     {
                         <option value="@trace.Id" selected="@(trace.Id == SelectedTrace?.Id)">Route @trace.Id.ToString()</option>
@@ -50,55 +46,115 @@
         <table class="table">
             <thead>
             <tr>
+                <th scope="col">Show</th>
                 <th scope="col">Hop #</th>
                 <th scope="col">Country</th>
-                <th scope="col">Name</th>
-                <th scope="col">IP Address</th>
-                <th scope="col">Roundtrip Time (ms)</th>
+                <th scope="col">Hostname</th>
+                <th scope="col">IP</th>
+                <th scope="col">RTT (ms)</th>
+                <th scope="col">Hop Distance</th>
             </tr>
             </thead>
             <tbody>
             @{
                 var i = 1;
+                Coordinate? lastCoordinate = null;
+                double? totalDistanceServiced = null;
+
                 foreach (var hop in SelectedTrace.Hops)
                 {
+                    // hop was unreachable, display as unknown
                     if (hop == null)
                     {
                         <tr>
+                            <td></td>
                             <th scope="row">@(i++)</th>
                             <td>
                                 <img alt="unknown country" src="https://cdn.jsdelivr.net/gh/ppy/osu-resources@2024.410.0/osu.Game.Resources/Textures/Flags/__.png" height="20"/>
                             </td>
                             <td>-</td>
                             <td>-</td>
-                            <td>- (timed out)</td>
+                            <td>-</td>
+                            <td>-</td>
                         </tr>
                     }
                     else
                     {
                         var ipInfo = HostGeolocationCache.GetValueOrDefault(hop.IP);
 
-                        <tr>
-                            <th scope="row">@(i++)</th>
-                            <td>
-                                <div class="d-flex align-items-center gap-3">
-                                    <img alt="country flag" src=@($"https://cdn.jsdelivr.net/gh/ppy/osu-resources@2024.410.0/osu.Game.Resources/Textures/Flags/{ipInfo?.CountryCode?.ToUpperInvariant() ?? "__"}.png") height="20"/>
-                                    @if (!string.IsNullOrEmpty(ipInfo?.City))
-                                    {
-                                        <span>@ipInfo.City, @ipInfo.Country</span>
-                                    }
-                                    else if (!string.IsNullOrEmpty(ipInfo?.Country))
-                                    {
-                                        <span>@ipInfo.Country</span>
-                                    }
-                                </div>
-                            </td>
-                            <td>@hop.Name</td>
-                            <td>@hop.IP.ToString()</td>
-                            <td>@hop.RoundtripTimeMs.ToString("f3")</td>
-                        </tr>
+                        // no geolocation info available
+                        if (ipInfo == null)
+                        {
+                            <tr>
+                                <td></td>
+                                <th scope="row">@(i++)</th>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <img alt="country flag" src="https://cdn.jsdelivr.net/gh/ppy/osu-resources@2024.410.0/osu.Game.Resources/Textures/Flags/__.png" height="20"/>
+                                    </div>
+                                </td>
+                                <td>@hop.Name</td>
+                                <td>@hop.IP.ToString()</td>
+                                <td>@hop.RoundtripTimeMs.ToString("f3")</td>
+                                <td>-</td>
+                            </tr>
+                        }
+                        // geolocation info available
+                        else
+                        {
+                            var coordinate = new Coordinate(ipInfo.Latitude!.Value, ipInfo.Longitude!.Value);
+                            var distanceMiles = lastCoordinate.HasValue ? GeoCalculator.GetDistance(lastCoordinate.Value, coordinate) : 0;
+
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" checked="@(!IgnoredHops.Contains(hop.IP))" @onchange="() => ToggleHostVisibility(hop.IP)">
+                                    </div>
+                                </td>
+                                <th scope="row">@(i++)</th>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <img alt="country flag" src=@($"https://cdn.jsdelivr.net/gh/ppy/osu-resources@2024.410.0/osu.Game.Resources/Textures/Flags/{ipInfo?.CountryCode?.ToUpperInvariant() ?? "__"}.png") height="20"/>
+                                        @if (!string.IsNullOrEmpty(ipInfo.City))
+                                        {
+                                            <span>@ipInfo.City, @ipInfo.Country</span>
+                                        }
+                                        else if (!string.IsNullOrEmpty(ipInfo.Country))
+                                        {
+                                            <span>@ipInfo.Country</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>@hop.Name</td>
+                                <td>@hop.IP.ToString()</td>
+                                <td>@hop.RoundtripTimeMs.ToString("f3")</td>
+                                @if (IgnoredHops.Contains(hop.IP))
+                                {
+                                    <td>-</td>
+                                }
+                                else
+                                {
+                                    <td>@distanceMiles miles</td>
+
+                                    // update coordinate
+                                    lastCoordinate = coordinate;
+                                    totalDistanceServiced = totalDistanceServiced.HasValue ? totalDistanceServiced + distanceMiles : distanceMiles;
+                                }
+                            </tr>
+                        }
                     }
                 }
+
+                // summary row
+                <tr>
+                    <td></td>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th>@SelectedTrace.Hops.Last().RoundtripTimeMs.ToString("f3") ms</th>
+                    <th>@totalDistanceServiced?.ToString("N3") miles</th>
+                </tr>
             }
             </tbody>
         </table>

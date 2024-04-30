@@ -43,7 +43,7 @@ function addMarkers(map, layerGroup, markers, includePolyline) {
 
     // https://stackoverflow.com/a/16845714
     const group = new L.featureGroup(markerInstances);
-    map.fitBounds(group.getBounds().pad(0.1));
+    map.fitBounds(group.getBounds().pad(0.05));
 }
 
 function addPolyline(layerGroup, polyline) {
