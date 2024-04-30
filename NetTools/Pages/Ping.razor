@@ -27,7 +27,28 @@
         @switch (SelectedHost)
         {
             case null when PingResults != null:
-                // line graph of response rate over time
+                // stacked graph of session outcome (loss, success, heavy loss)
+                <div style="height: 25vh">
+                    <ApexChart TItem="PingResult" Title="Packet Delivery" Options="_packetLossChartOptions" @ref="_packetLossChart">
+                        <ApexPointSeries TItem="PingResult"
+                                         Items="PingResults.SelectMany(x => x)"
+                                         Name="Packets Received"
+                                         SeriesType="SeriesType.Bar"
+                                         ShowDataLabels
+                                         XValue="@(e => e.Destination)"
+                                         YAggregate="@(e => e.Sum(x => x.PacketsReceived))"/>
+
+                        <ApexPointSeries TItem="PingResult"
+                                         Items="PingResults.SelectMany(x => x)"
+                                         Name="Packets Lost"
+                                         SeriesType="SeriesType.Bar"
+                                         ShowDataLabels
+                                         XValue="@(e => e.Destination)"
+                                         YAggregate="@(e => (decimal)e.Where(x => x.PacketLossPercent > 0).Sum(x => x.PacketsTransmitted - x.PacketsReceived))"/>
+                    </ApexChart>
+                </div>
+
+                // line graph + table of response rate over time
                 <div style="height: 45vh">
                     <ApexChart Title="Response Times" Options="_responseTimeChartOptions" @ref="_responseTimeChart">
                         @* apex charts expects datetimes to be in millisecond epoch form (hence the *1000) *@
@@ -55,44 +76,23 @@
                     </tr>
                     </thead>
                     <tbody>
-                        @foreach (var host in PingResults)
-                        {
-                            var orderedRttValues = host.SelectMany(x => x.Responses.Select(y => (double)y.TimeMs)).Order().ToArray();
-                            var stats = new DescriptiveStatistics(orderedRttValues);
-                            
-                            <tr>
-                                <th scope="row">@host.Key</th>
-                                <td>@stats.Minimum.ToString("f3") ms</td>
-                                <td>@stats.Mean.ToString("f3") ms</td>
-                                <td>@orderedRttValues.Median().ToString("f3") ms</td>
-                                <td>@stats.Maximum.ToString("f3") ms</td>
-                                <td>@stats.StandardDeviation.ToString("f3")</td>
-                                <td>@((stats.Mean - orderedRttValues.Median()).ToString("f3")) ms</td>
-                            </tr>
-                        }
+                    @foreach (var host in PingResults)
+                    {
+                        var orderedRttValues = host.SelectMany(x => x.Responses.Select(y => (double)y.TimeMs)).Order().ToArray();
+                        var stats = new DescriptiveStatistics(orderedRttValues);
+
+                        <tr>
+                            <th scope="row">@host.Key</th>
+                            <td>@stats.Minimum.ToString("f3") ms</td>
+                            <td>@stats.Mean.ToString("f3") ms</td>
+                            <td>@orderedRttValues.Median().ToString("f3") ms</td>
+                            <td>@stats.Maximum.ToString("f3") ms</td>
+                            <td>@stats.StandardDeviation.ToString("f3")</td>
+                            <td>@((stats.Mean - orderedRttValues.Median()).ToString("f3")) ms</td>
+                        </tr>
+                    }
                     </tbody>
                 </table>
-                
-                // stacked graph of session outcome (loss, success, heavy loss)
-                <div style="height: 50vh">
-                    <ApexChart TItem="PingResult" Title="Packet Result" Options="_packetLossChartOptions" @ref="_packetLossChart">
-                        <ApexPointSeries TItem="PingResult"
-                                         Items="PingResults.SelectMany(x => x)"
-                                         Name="Packets Received"
-                                         SeriesType="SeriesType.Bar"
-                                         ShowDataLabels
-                                         XValue="@(e => e.Destination)"
-                                         YAggregate="@(e => e.Sum(x => x.PacketsReceived))"/>
-                        
-                        <ApexPointSeries TItem="PingResult"
-                                         Items="PingResults.SelectMany(x => x)"
-                                         Name="Packets Lost"
-                                         SeriesType="SeriesType.Bar"
-                                         ShowDataLabels
-                                         XValue="@(e => e.Destination)"
-                                         YAggregate="@(e => (decimal)e.Where(x => x.PacketLossPercent > 0).Sum(x => x.PacketsTransmitted - x.PacketsReceived))"/>
-                    </ApexChart>
-                </div>
 
                 _responseTimeChart?.RenderAsync();
                 _packetLossChart?.RenderAsync();
