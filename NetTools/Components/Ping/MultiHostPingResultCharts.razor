@@ -1,0 +1,74 @@
+@using NetTools.Models
+
+<div style="height: 25vh">
+    <ApexChart TItem="PingResult" Title="Packet Delivery" Options="_packetLossChartOptions" @ref="_packetLossChart">
+        <ApexPointSeries TItem="PingResult"
+                         Items="HostResponses.SelectMany(x => x)"
+                         Name="Packets Received"
+                         SeriesType="SeriesType.Bar"
+                         ShowDataLabels
+                         XValue="@(e => e.Destination)"
+                         YAggregate="@(e => e.Sum(x => x.PacketsReceived))"/>
+
+        <ApexPointSeries TItem="PingResult"
+                         Items="HostResponses.SelectMany(x => x)"
+                         Name="Packets Lost"
+                         SeriesType="SeriesType.Bar"
+                         ShowDataLabels
+                         XValue="@(e => e.Destination)"
+                         YAggregate="@(e => (decimal)e.Where(x => x.PacketLossPercent > 0).Sum(x => x.PacketsTransmitted - x.PacketsReceived))"/>
+    </ApexChart>
+</div>
+
+<div style="height: 45vh">
+    <ApexChart Title="Response Times" Options="_responseTimeChartOptions" @ref="_responseTimeChart">
+        @* apex charts expects datetimes to be in millisecond epoch form (hence the *1000) *@
+        @foreach (var series in HostResponses)
+        {
+            <ApexPointSeries Name="@series.Key"
+                             Items="@series"
+                             SeriesType="SeriesType.Line"
+                             XValue="x => x.Timestamp!.Value * 1000"
+                             YValue="@(e => (decimal)Math.Round(e.Responses.Average(y => y.TimeMs), 3))"/>
+        }
+    </ApexChart>
+</div>
+
+@{
+    _responseTimeChart?.RenderAsync();
+    _packetLossChart?.RenderAsync();
+}
+
+@code {
+
+    private ApexChart<PingResult> _responseTimeChart, _packetLossChart;
+
+    private readonly ApexChartOptions<PingResult> _responseTimeChartOptions = new()
+    {
+        Chart = new Chart { Height = "100%" },
+        Theme = new Theme { Mode = Mode.Dark },
+        Legend = new Legend { Position = LegendPosition.Bottom },
+        PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { Horizontal = true } },
+        Xaxis = new XAxis { Type = XAxisType.Datetime, Title = new AxisTitle { Text = "Date" } },
+        Yaxis =
+        [
+            new YAxis
+            {
+                Title = new AxisTitle { Text = "RTT (ms)", Style = new AxisTitleStyle { FontSize = "14px" } },
+                Labels = new YAxisLabels { Style = new AxisLabelStyle { FontSize = "12px" } }
+            }
+        ]
+    };
+
+    private readonly ApexChartOptions<PingResult> _packetLossChartOptions = new()
+    {
+        Colors = ["#4caf4f", "#f44336"],
+        Theme = new Theme { Mode = Mode.Dark },
+        Legend = new Legend { Position = LegendPosition.Bottom },
+        PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { Horizontal = true } },
+        Chart = new Chart { Height = "100%", Stacked = true, StackType = StackType.Percent100 },
+    };
+
+    [Parameter] public ILookup<string, PingResult> HostResponses { get; set; }
+
+}

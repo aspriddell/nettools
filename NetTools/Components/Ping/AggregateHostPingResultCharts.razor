@@ -1,0 +1,126 @@
+@using NetTools.Models
+@{
+    // plot loss over time and display a table of dates and loss percentages (colour coded)
+    Func<PingResult, string> xValue = e => e.Timestamp.HasValue ? DateTimeOffset.FromUnixTimeSeconds(e.Timestamp.Value).Date.ToShortDateString() : "\u221e";
+}
+
+<div style="height: 25vh">
+    <ApexChart Title="Session Outcomes" Options="@_packetLossChartOptions" @ref="_packetLossChart">
+        <ApexPointSeries Name="Loss-free" SeriesType="SeriesType.Bar" ShowDataLabels
+                         Items="@HostPingResults" OrderBy="e => e.X" XValue="xValue"
+                         YAggregate="@(e => e.Count(x => x.PacketLossPercent == 0))"/>
+
+        <ApexPointSeries Name="Minor Losses" SeriesType="SeriesType.Bar" ShowDataLabels
+                         Items="@HostPingResults" OrderBy="e => e.X" XValue="xValue"
+                         YAggregate="@(e => e.Count(x => x.PacketLossPercent is > 0 and <= 5))"/>
+
+        <ApexPointSeries Name="Significant Losses" SeriesType="SeriesType.Bar" ShowDataLabels
+                         Items="@HostPingResults" OrderBy="e => e.X" XValue="xValue"
+                         YAggregate="@(e => e.Count(x => x.PacketLossPercent is > 5 and <= 10))"/>
+
+        <ApexPointSeries Name="Extreme Loss" SeriesType="SeriesType.Bar" ShowDataLabels
+                         Items="@HostPingResults" OrderBy="e => e.X" XValue="xValue"
+                         YAggregate="@(e => e.Count(x => x.PacketLossPercent > 10))"/>
+    </ApexChart>
+</div>
+
+<div style="height: 40vh">
+    <ApexChart Title="Response Rate (w/ loss rate)" Options="_pingTrendChartOptions" @ref="_pingTrendChart">
+        @* apex charts expects datetimes to be in millisecond epoch form (hence the *1000) *@
+        <ApexPointSeries Name="Average Ping"
+                         SeriesType="SeriesType.Line"
+                         Items="@HostPingResults.Where(x => x.Timestamp.HasValue)"
+                         XValue="x => x.Timestamp!.Value * 1000"
+                         YValue="@(e => (decimal)Math.Round(e.Responses.Average(y => y.TimeMs), 3))"/>
+
+        <ApexPointSeries Name="Loss Rate"
+                         SeriesType="SeriesType.Bar"
+                         Items="@HostPingResults.Where(x => x.Timestamp.HasValue)"
+                         XValue="x => x.Timestamp!.Value * 1000"
+                         YValue="@(e => (decimal)e.PacketLossPercent)"/>
+    </ApexChart>
+</div>
+
+@{
+    _packetLossChart?.RenderAsync();
+    _pingTrendChart?.RenderAsync();
+}
+
+@code {
+
+    private ApexChart<PingResult> _packetLossChart, _pingTrendChart;
+    private readonly ApexChartOptions<PingResult> _packetLossChartOptions = new()
+    {
+        Theme = new Theme { Mode = Mode.Dark },
+        Colors = ["#4caf4f", "#ffeb3b", "#ffc107", "#f44336"],
+        Legend = new Legend { Position = LegendPosition.Bottom },
+        Chart = new Chart { Stacked = true, Height = "100%", StackType = StackType.Percent100 },
+        PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { Horizontal = true } },
+        Xaxis = new XAxis
+        {
+            Labels = new XAxisLabels { Style = new AxisLabelStyle { FontSize = "12px" } },
+            Title = new AxisTitle
+            {
+                Text = "Percentage",
+                Style = new AxisTitleStyle
+                {
+                    FontSize = "14px"
+                }
+            }
+        },
+        Yaxis =
+        [
+            new YAxis
+            {
+                Title = new AxisTitle { Text = "Date", Style = new AxisTitleStyle { FontSize = "14px" } },
+                Labels = new YAxisLabels { Style = new AxisLabelStyle { FontSize = "12px" } }
+            }
+        ]
+    };
+
+    private readonly ApexChartOptions<PingResult> _pingTrendChartOptions = new()
+    {
+        Chart = new Chart { Height = "100%" },
+        Theme = new Theme { Mode = Mode.Dark },
+        Tooltip = new Tooltip { X = new TooltipX { Format = "dd/MM/yyyy HH:mm" } },
+        Xaxis = new XAxis
+        {
+            Type = XAxisType.Datetime,
+            Labels = new XAxisLabels
+            {
+                Style = new AxisLabelStyle { FontSize = "10px" },
+                Format = "dd/MM/yyyy"
+            },
+            Title = new AxisTitle
+            {
+                Text = "Date",
+                Style = new AxisTitleStyle { FontSize = "14px" }
+            }
+        },
+        Yaxis =
+        [
+            new YAxis
+            {
+                Title = new AxisTitle
+                {
+                    Text = "RTT (ms)",
+                    Style = new AxisTitleStyle { FontSize = "14px" }
+                }
+            },
+            new YAxis
+            {
+                Opposite = true,
+                Title = new AxisTitle
+                {
+                    Text = "Packet Loss (%)",
+                    Style = new AxisTitleStyle { FontSize = "14px" }
+                }
+            }
+        ]
+    };
+    
+    
+    [Parameter]
+    public IEnumerable<PingResult> HostPingResults { get; set; }
+    
+}

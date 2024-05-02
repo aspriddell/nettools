@@ -1,6 +1,7 @@
 @page "/ping"
 @using MathNet.Numerics.Statistics
 @using NetTools.Models
+@using NetTools.Components.Ping
 
 <div class="d-flex flex-column gap-2">
     <FileSubmissionComponent TItem="PingResult"
@@ -26,121 +27,20 @@
 
         @switch (SelectedHost)
         {
+            // multiple hosts submitted, show aggregate responses
             case null when PingResults != null:
-                // stacked graph of session outcome (loss, success, heavy loss)
-                <div style="height: 25vh">
-                    <ApexChart TItem="PingResult" Title="Packet Delivery" Options="_packetLossChartOptions" @ref="_packetLossChart">
-                        <ApexPointSeries TItem="PingResult"
-                                         Items="PingResults.SelectMany(x => x)"
-                                         Name="Packets Received"
-                                         SeriesType="SeriesType.Bar"
-                                         ShowDataLabels
-                                         XValue="@(e => e.Destination)"
-                                         YAggregate="@(e => e.Sum(x => x.PacketsReceived))"/>
-
-                        <ApexPointSeries TItem="PingResult"
-                                         Items="PingResults.SelectMany(x => x)"
-                                         Name="Packets Lost"
-                                         SeriesType="SeriesType.Bar"
-                                         ShowDataLabels
-                                         XValue="@(e => e.Destination)"
-                                         YAggregate="@(e => (decimal)e.Where(x => x.PacketLossPercent > 0).Sum(x => x.PacketsTransmitted - x.PacketsReceived))"/>
-                    </ApexChart>
-                </div>
-
-                // line graph + table of response rate over time
-                <div style="height: 45vh">
-                    <ApexChart Title="Response Times" Options="_responseTimeChartOptions" @ref="_responseTimeChart">
-                        @* apex charts expects datetimes to be in millisecond epoch form (hence the *1000) *@
-                        @foreach (var series in PingResults)
-                        {
-                            <ApexPointSeries Name="@series.Key"
-                                             Items="@series"
-                                             SeriesType="SeriesType.Line"
-                                             XValue="x => x.Timestamp!.Value * 1000"
-                                             YValue="@(e => (decimal)Math.Round(e.Responses.Average(y => y.TimeMs), 3))"/>
-                        }
-                    </ApexChart>
-                </div>
-
-                <table class="table">
-                    <thead>
-                    <tr>
-                        <th scope="col">Host</th>
-                        <th scope="col">Min RTT</th>
-                        <th scope="col">Mean RTT</th>
-                        <th scope="col">Median RTT</th>
-                        <th scope="col">Max RTT</th>
-                        <th scope="col">Standard Deviation</th>
-                        <th scope="col">Average. Difference</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var host in PingResults)
-                    {
-                        var orderedRttValues = host.SelectMany(x => x.Responses.Select(y => (double)y.TimeMs)).Order().ToArray();
-                        var stats = new DescriptiveStatistics(orderedRttValues);
-
-                        <tr>
-                            <th scope="row">@host.Key</th>
-                            <td>@stats.Minimum.ToString("f3") ms</td>
-                            <td>@stats.Mean.ToString("f3") ms</td>
-                            <td>@orderedRttValues.Median().ToString("f3") ms</td>
-                            <td>@stats.Maximum.ToString("f3") ms</td>
-                            <td>@stats.StandardDeviation.ToString("f3")</td>
-                            <td>@((stats.Mean - orderedRttValues.Median()).ToString("f3")) ms</td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-
-                _responseTimeChart?.RenderAsync();
-                _packetLossChart?.RenderAsync();
+                <MultiHostPingResultCharts HostResponses="PingResults"/>
+                <HostResponseSummaryTable HostResponses="PingResults"/>
                 break;
 
+            // multiple ping results uploaded - show aggregate statistics
+            case not null when SelectedHost.Count() > 1:
+                <AggregateHostPingResultCharts HostPingResults="SelectedHost"/>
+                break;
+                
+            // single ping result uploaded - show individual IMCP packets as responses
             case not null:
-                // plot loss over time and display a table of dates and loss percentages (colour coded)
-                Func<PingResult, string> xValue = e => e.Timestamp.HasValue ? DateTimeOffset.FromUnixTimeSeconds(e.Timestamp.Value).Date.ToShortDateString() : "\u221e";
-
-                <div style="height: 25vh">
-                    <ApexChart Title="Session Outcomes" Options="@_hostPacketLossChartOptions" @ref="_hostPacketLossChart">
-                        <ApexPointSeries Name="Loss-free" SeriesType="SeriesType.Bar" ShowDataLabels
-                                         Items="@SelectedHost" OrderBy="e => e.X" XValue="xValue"
-                                         YAggregate="@(e => e.Count(x => x.PacketLossPercent == 0))"/>
-
-                        <ApexPointSeries Name="Minor Losses" SeriesType="SeriesType.Bar" ShowDataLabels
-                                         Items="@SelectedHost" OrderBy="e => e.X" XValue="xValue"
-                                         YAggregate="@(e => e.Count(x => x.PacketLossPercent is > 0 and <= 5))"/>
-
-                        <ApexPointSeries Name="Significant Losses" SeriesType="SeriesType.Bar" ShowDataLabels
-                                         Items="@SelectedHost" OrderBy="e => e.X" XValue="xValue"
-                                         YAggregate="@(e => e.Count(x => x.PacketLossPercent is > 5 and <= 10))"/>
-
-                        <ApexPointSeries Name="Extreme Loss" SeriesType="SeriesType.Bar" ShowDataLabels
-                                         Items="@SelectedHost" OrderBy="e => e.X" XValue="xValue"
-                                         YAggregate="@(e => e.Count(x => x.PacketLossPercent > 10))"/>
-                    </ApexChart>
-                </div>
-
-                <div style="height: 40vh">
-                    <ApexChart Title="Response Rate (w/ loss rate)" Options="_hostDualPingLossChartOptions" @ref="_hostDualPingLossChart">
-                        @* apex charts expects datetimes to be in millisecond epoch form (hence the *1000) *@
-                        <ApexPointSeries Name="Average Ping"
-                                         SeriesType="SeriesType.Line"
-                                         Items="@SelectedHost.Where(x => x.Timestamp.HasValue)"
-                                         XValue="x => x.Timestamp!.Value * 1000"
-                                         YValue="@(e => (decimal)Math.Round(e.Responses.Average(y => y.TimeMs), 3))"/>
-
-                        <ApexPointSeries Name="Loss Rate"
-                                         SeriesType="SeriesType.Bar"
-                                         Items="@SelectedHost.Where(x => x.Timestamp.HasValue)"
-                                         XValue="x => x.Timestamp!.Value * 1000"
-                                         YValue="@(e => (decimal)e.PacketLossPercent)"/>
-                    </ApexChart>
-                </div>
-
-                _hostPacketLossChart?.RenderAsync();
-                _hostDualPingLossChart?.RenderAsync();
+                <SinglePingResultGraphs Result="@SelectedHost.Single()"/>
                 break;
         }
     </div>

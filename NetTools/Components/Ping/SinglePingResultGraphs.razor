@@ -1,0 +1,39 @@
+@using NetTools.Models
+
+<div style="height: 50vh">
+    <ApexChart Title="Response Time Trend" Options="_options" @ref="_chart">
+        <ApexPointSeries Items="@Result.Responses"
+                         SeriesType="SeriesType.Line"
+                         XValue="x => x.IMCPSeq"
+                         YValue="@(x => (decimal)Math.Round(x.TimeMs, 3))"/>
+    </ApexChart>
+</div>
+
+@{
+    // force render whenever the chart is updated
+    _chart?.RenderAsync();
+}
+
+@code {
+
+    private ApexChart<PingResponse> _chart;
+    private readonly ApexChartOptions<PingResponse> _options = new()
+    {
+        Chart = new Chart { Height = "100%" },
+        Theme = new Theme { Mode = Mode.Dark },
+        Legend = new Legend { Position = LegendPosition.Bottom },
+        Xaxis = new XAxis { Title = new AxisTitle { Text = "Sequence No." }, TickAmount = 20 },
+        Yaxis =
+        [
+            new YAxis
+            {
+                Title = new AxisTitle { Text = "RTT (ms)", Style = new AxisTitleStyle { FontSize = "14px" } },
+                Labels = new YAxisLabels { Style = new AxisLabelStyle { FontSize = "12px" } }
+            }
+        ]
+    };
+    
+    [Parameter]
+    public PingResult Result { get; set; }
+    
+}

@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Net;
+using System.Text.Json.Serialization;
 
 namespace NetTools.Models;
 
-internal record PingResult(
+public record PingResult(
     IPAddress DestinationIP,
     string Destination,
     int DataBytes,
@@ -18,11 +19,11 @@ internal record PingResult(
     long? Timestamp,
     IReadOnlyList<PingResponse> Responses);
 
-internal record PingResponse(
+public record PingResponse(
     string Type,
     int Bytes,
     IPAddress ResponseIP,
-    int IMCPSeq,
+    [property: JsonPropertyName("icmp_seq")] int IMCPSeq,
     int TTL,
     float TimeMs,
     bool Duplicate);
