@@ -4,7 +4,7 @@
     <ApexChart Title="Response Time Trend" Options="_options" @ref="_chart">
         <ApexPointSeries Items="@Result.Responses"
                          SeriesType="SeriesType.Line"
-                         XValue="x => x.IMCPSeq"
+                         XValue="x => (Result.Timestamp + x.IMCPSeq) * 1000"
                          YValue="@(x => (decimal)Math.Round(x.TimeMs, 3))"/>
     </ApexChart>
 </div>
@@ -17,7 +17,7 @@
 @code {
 
     private ApexChart<PingResponse> _chart;
-    private readonly ApexChartOptions<PingResponse> _options = new()
+    private ApexChartOptions<PingResponse> _options = new()
     {
         Chart = new Chart { Height = "100%" },
         Theme = new Theme { Mode = Mode.Dark },
@@ -35,5 +35,10 @@
     
     [Parameter]
     public PingResult Result { get; set; }
-    
+
+    protected override void OnParametersSet()
+    {
+        _options.Xaxis.Type = Result.Timestamp.HasValue ? XAxisType.Datetime : XAxisType.Numeric;
+    }
+
 }
