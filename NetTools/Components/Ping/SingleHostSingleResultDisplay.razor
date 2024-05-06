@@ -1,7 +1,7 @@
 @using NetTools.Models
 
 <div style="height: 50vh">
-    <ApexChart Title="Response Time Trend" Options="_options" @ref="_chart">
+    <ApexChart Title="Response Time" Options="_options" @ref="_chart">
         <ApexPointSeries Items="@Result.Responses"
                          SeriesType="SeriesType.Line"
                          XValue="x => (Result.Timestamp + x.IMCPSeq) * 1000"
@@ -9,8 +9,9 @@
     </ApexChart>
 </div>
 
+<HostSummaryTable HostResponses="new[] { Result }.ToLookup(x => x.Destination)"/>
+
 @{
-    // force render whenever the chart is updated
     _chart?.RenderAsync();
 }
 

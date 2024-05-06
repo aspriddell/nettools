@@ -22,17 +22,21 @@
 
 <div style="height: 45vh">
     <ApexChart Title="Response Times" Options="_responseTimeChartOptions" @ref="_responseTimeChart">
-        @* apex charts expects datetimes to be in millisecond epoch form (hence the *1000) *@
         @foreach (var series in HostResponses)
         {
+            // apex charts expects datetimes to be in millisecond epoch form (hence the *1000)
+            var points = series.SelectMany(x => x.Responses.Select(y => new PingResultPoint(x.Timestamp.GetValueOrDefault() + y.IMCPSeq * 1000, (decimal)Math.Round(y.TimeMs, 3))));
+
             <ApexPointSeries Name="@series.Key"
-                             Items="@series"
+                             Items="@points"
                              SeriesType="SeriesType.Line"
-                             XValue="x => x.Timestamp!.Value * 1000"
-                             YValue="@(e => (decimal)Math.Round(e.Responses.Average(y => y.TimeMs), 3))"/>
+                             XValue="x => x.Timestamp"
+                             YValue="x => x.ResponseTime"/>
         }
     </ApexChart>
 </div>
+
+<HostSummaryTable HostResponses="HostResponses"/>
 
 @{
     _responseTimeChart?.RenderAsync();
@@ -40,6 +44,8 @@
 }
 
 @code {
+
+    private record PingResultPoint(long Timestamp, decimal ResponseTime);
 
     private ApexChart<PingResult> _responseTimeChart, _packetLossChart;
 
@@ -69,6 +75,7 @@
         Chart = new Chart { Height = "100%", Stacked = true, StackType = StackType.Percent100 },
     };
 
-    [Parameter] public ILookup<string, PingResult> HostResponses { get; set; }
+    [Parameter]
+    public ILookup<string, PingResult> HostResponses { get; set; }
 
 }
