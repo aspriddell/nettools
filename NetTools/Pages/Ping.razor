@@ -1,5 +1,4 @@
 @page "/ping"
-@using MathNet.Numerics.Statistics
 @using NetTools.Models
 @using NetTools.Components.Ping
 
@@ -29,18 +28,17 @@
         {
             // multiple hosts submitted, show aggregate responses
             case null when PingResults != null:
-                <MultiHostPingResultCharts HostResponses="PingResults"/>
-                <HostResponseSummaryTable HostResponses="PingResults"/>
+                <HostAggregateSummary HostResponses="PingResults"/>
                 break;
 
             // multiple ping results uploaded - show aggregate statistics
             case not null when SelectedHost.Count() > 1:
-                <AggregateHostPingResultCharts HostPingResults="SelectedHost"/>
+                <SingleHostMultiResultsDisplay HostPingResults="SelectedHost"/>
                 break;
                 
             // single ping result uploaded - show individual IMCP packets as responses
             case not null:
-                <SinglePingResultGraphs Result="@SelectedHost.Single()"/>
+                <SingleHostSingleResultDisplay Result="@SelectedHost.Single()"/>
                 break;
         }
     </div>
