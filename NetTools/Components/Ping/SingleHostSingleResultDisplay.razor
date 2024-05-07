@@ -12,20 +12,6 @@
     </ApexChart>
 </div>
 
-<div style="height: 50vh">
-    <ApexChart Title="Response Time Trend" Options="_histogramChartOptions" @ref="_histogram">
-        <ApexPointSeries Items="Enumerable.Range(0, ResponseTimeHistogram.BucketCount).Select(x => ResponseTimeHistogram[x])"
-                         SeriesType="SeriesType.Bar"
-                         XValue="x => (x.UpperBound - x.LowerBound) / 2 + x.LowerBound"
-                         YValue="x => (decimal)x.Count"/>
-
-        <ApexPointSeries Items="LogNormalPoints"
-                         XValue="x => x.Midpoint"
-                         YValue="x => x.Height"/>
-    </ApexChart>
-</div>
-
-
 <HostSummaryTable HostResponses="new[] { Result }.ToLookup(x => x.Destination)"/>
 
 @{
@@ -82,51 +68,4 @@
     
     [Parameter]
     public PingResult Result { get; set; }
-    
-    /// <summary>
-    /// Histogram used to display the distribution of response times.
-    /// </summary>
-    private Histogram ResponseTimeHistogram { get; set; }
-    
-    /// <summary>
-    /// Log-Normal samples used with a histogram to display the "fitness" of the distribution of response times.
-    /// This is essentially the "expected" distribution of response time.
-    /// </summary>
-    private IEnumerable<HistogramPoint> LogNormalPoints { get; set; }
-
-    protected override void OnParametersSet()
-    {
-        _options.Xaxis.Type = Result.Timestamp.HasValue ? XAxisType.Datetime : XAxisType.Numeric;
-        
-        // generate the expected distribution of response times based on stdev and mean
-        var samples = new double[Result.Responses.Count];
-        LogNormal.Samples(samples, Result.RoundTripTimeAvg, Result.RoundTripTimeStddev);
-
-        // get bin width based on the Freedman-Diaconis rule (see https://en.wikipedia.org/wiki/Freedman%E2%80%93Diaconis_rule)
-        var responseTimes = Result.Responses.Select(x => x.TimeMs).ToArray();
-        Array.Sort(responseTimes);
-
-        var binWidth = 2 * (SortedArrayStatistics.InterquartileRange(responseTimes) / Math.Pow(Result.Responses.Count, 1f / 3f));
-        var binCount = (int)Math.Ceiling((responseTimes[^1] - responseTimes[0]) / binWidth);
-        ResponseTimeHistogram = new Histogram(responseTimes, Math.Max(1, binCount));
-        
-        // interpolate the log-normal samples to match the number of histogram bins
-        // use relative-values to allow interpolation to work (needs two axis, where x is between 0-1)
-        var relativeXValues = Enumerable.Range(0, samples.Length).Select(i => (double)i / (samples.Length - 1));
-        var interpolator = CubicSpline.InterpolateBoundaries(relativeXValues, samples, SplineBoundaryCondition.FirstDerivative, 0, SplineBoundaryCondition.FirstDerivative, 0);
-        
-        // interpolate to the number of points on the histogram, combine with the original bucket
-        var interpolatedSamples = Enumerable.Range(0, ResponseTimeHistogram.BucketCount)
-            .Select(i => (double)i / (ResponseTimeHistogram.BucketCount - 1))
-            .Select(x => interpolator.Interpolate(x));
-
-        LogNormalPoints = Enumerable.Range(0, ResponseTimeHistogram.BucketCount)
-            .Select(i => ResponseTimeHistogram[i])
-            .Zip(interpolatedSamples, (bucket, value) => new HistogramPoint((bucket.UpperBound - bucket.LowerBound) / 2 + bucket.LowerBound, (decimal)value))
-            .ToList();
-
-        _histogramChartOptions.Xaxis.TickAmount = ResponseTimeHistogram.BucketCount;
-        _histogramChartOptions.Xaxis.Max = ResponseTimeHistogram[ResponseTimeHistogram.BucketCount - 1].UpperBound;
-        _histogramChartOptions.Yaxis[0].Max = Enumerable.Range(0, ResponseTimeHistogram.BucketCount).Max(x => ResponseTimeHistogram[x].Count);
-    }
 }
