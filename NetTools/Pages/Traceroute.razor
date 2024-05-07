@@ -169,7 +169,7 @@
                     <th></th>
                     <th></th>
                     <th></th>
-                    <th>@SelectedTrace.Hops.Last().RoundtripTimeMs.ToString("f3") ms</th>
+                    <th>@SelectedTrace.Hops.Last(x => x != null).RoundtripTimeMs.ToString("f3") ms</th>
                     <th>@totalDistanceServiced?.ToString("N3") miles</th>
                 </tr>
             }
