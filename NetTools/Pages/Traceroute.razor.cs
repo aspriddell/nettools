@@ -131,6 +131,7 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
         var distinctRoutes = new List<TracerouteRouteGroup>();
         foreach (var hostTraceGroup in results.OrderBy(x => x.Timestamp).GroupBy(x => x.DestinationName))
         {
+            var routeIndex = 1; // specific index for each route (per-host)
             var routeCount = hostTraceGroup.Count();
             var processedRoutes = new List<TracerouteResult>();
                 
@@ -169,8 +170,8 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
                 }
                     
                 // add the most complete route to the list of distinct routes
-                distinctRoutes.Add(new TracerouteRouteGroup(distinctRoutes.Count + 1, hostTraceGroup.Key, mostCompleteRoute!.Hops.Select(x => x.Probes.FirstOrDefault()).ToList(), routeEncountered));
-                    
+                distinctRoutes.Add(new TracerouteRouteGroup(routeIndex++, hostTraceGroup.Key, mostCompleteRoute.Hops.Select(x => x.Probes.FirstOrDefault()).ToList(), routeEncountered));
+
                 // now the most complete route has been set, mark all routes that are subsets as processed
                 foreach (var trace in hostTraceGroup.Except(processedRoutes))
                 {
