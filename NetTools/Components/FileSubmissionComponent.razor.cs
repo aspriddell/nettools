@@ -89,7 +89,7 @@ public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
                     }
                     catch (Exception e)
                     {
-                        Logger.LogWarning(e, "Failed to process {FileName}: {Error}", entry.Name, e.Message);
+                        Logger.LogWarning(e, "Failed to process {FileName}: {Error}", entry.FullName, e.Message);
                     }
                 }
 
