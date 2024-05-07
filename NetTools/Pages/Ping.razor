@@ -7,7 +7,7 @@
                              TOut="ILookup<string, PingResult>"
                              Current="PingResults"
                              CurrentChanged="SetProcessedItems"
-                             ProcessItems="y => y.OrderBy(x => x.Timestamp).ToLookup(x => x.Destination)"/>
+                             ProcessItems="y => y.OrderBy(x => x.Timestamp.GetValueOrDefault()).ToLookup(x => x.Destination)"/>
 
     @if (PingResults?.Count > 0)
     {
