@@ -1,5 +1,6 @@
 @page "/traceroute"
 @using global::Geolocation
+@using MoreLinq
 @using NetTools.Models
 
 <div class="d-flex flex-column gap-2">
@@ -25,7 +26,9 @@
                     }
                 </select>
 
-                <select class="form-select" style="width: unset" @onchange="i => SetTrace(HostTraces[SelectedHost].Single(x => x.Id == int.Parse(i.Value.ToString())))">
+                <select class="form-select" style="width: unset" @onchange="i => SetTrace(i.Value == null ? null : HostTraces[SelectedHost].Single(x => x.Id == int.Parse(i.Value.ToString())))">
+                    <option selected="@(SelectedTrace == null)">All Routes</option>
+
                     @foreach (var trace in HostTraces[SelectedHost].OrderBy(x => x.Id))
                     {
                         <option value="@trace.Id" selected="@(trace.Id == SelectedTrace?.Id)">Route @trace.Id.ToString()</option>
@@ -40,8 +43,12 @@
 
     @* spacing *@
     <div></div>
-
-    @if (SelectedTrace != null)
+    
+    @if (HostTraces?.Any() != true)
+    {
+        // display nothing
+    }
+    else if (SelectedTrace != null)
     {
         <table class="table">
             <thead>
@@ -106,7 +113,9 @@
                                 </div>
                             </td>
                             <td>@hop.IP.ToString()</td>
-                            <td><code>@hop.Name</code></td>
+                            <td>
+                                <code>@hop.Name</code>
+                            </td>
                             <td>-</td>
                             <td>-</td>
                             <td>@hop.RoundtripTimeMs.ToString("f3")</td>
@@ -141,7 +150,9 @@
                                 </div>
                             </td>
                             <td>@hop.IP.ToString()</td>
-                            <td><code>@hop.Name</code></td>
+                            <td>
+                                <code>@hop.Name</code>
+                            </td>
                             <td>@ipInfo.AsName</td>
                             <td>@ipInfo.Organisation</td>
                             <td>@hop.RoundtripTimeMs.ToString("f3")</td>
@@ -175,5 +186,30 @@
             }
             </tbody>
         </table>
+    }
+    else if (!string.IsNullOrEmpty(SelectedHost))
+    {
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">Route</th>
+                <td>Combo</td>
+                <td>First Recorded</td>
+                <td>Last Recorded</td>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var routeBlock in HostTraces[SelectedHost].SelectMany(x => x.TimesEncountered.Select(y => new { x.Id, Date = y })).OrderBy(x => x.Date).GroupAdjacent(x => x.Id))
+            {
+                <tr>
+                    <td>@routeBlock.Key</td>
+                    <td>@routeBlock.Count()</td>
+                    <td>@routeBlock.First().Date.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td>@routeBlock.Last().Date.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
     }
 </div>

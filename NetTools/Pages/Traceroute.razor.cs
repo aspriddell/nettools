@@ -83,16 +83,26 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
             await JsRuntime.InvokeVoidAsync("clearLayer", _markerLayerRef);
         }
 
+        IEnumerable<TracerouteProbe> hops;
+        
         if (route == null)
         {
             SelectedTrace = null;
-            return;
+
+            hops = HostTraces[SelectedHost].SelectMany(x => x.Hops);
+        }
+        else
+        {
+            SelectedTrace = route;
+            SelectedHost = route.Destination;
+
+            hops = route.Hops;
         }
 
         double[] lastLocation = null;
         var markers = new List<MapMarker>();
 
-        foreach (var hop in route.Hops.Where(x => x != null && !IgnoredHops.Contains(x.IP)))
+        foreach (var hop in hops.Where(x => x != null && !IgnoredHops.Contains(x.IP)))
         {
             if (!HostGeolocationCache.TryGetValue(hop.IP, out var ipInfo) || !ipInfo.Latitude.HasValue || !ipInfo.Longitude.HasValue)
             {
@@ -109,10 +119,7 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
         }
 
         // set ui state
-        SelectedTrace = route;
-        SelectedHost = route.Destination;
-
-        await JsRuntime.InvokeVoidAsync("addMarkers", _mapRef, _markerLayerRef, markers.ToArray(), true);
+        await JsRuntime.InvokeVoidAsync("addMarkers", _mapRef, _markerLayerRef, markers.ToArray(), SelectedTrace != null);
         await InvokeAsync(StateHasChanged);
     }
 
