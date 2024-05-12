@@ -73,7 +73,7 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
         SelectedHost = host;
         HostGeolocationCache = geolocatedEntries.ToDictionary(x => x.QueryAddress);
 
-        await SetTrace(HostTraces[host].FirstOrDefault());
+        await SetTrace(null);
     }
 
     private async Task SetTrace(TracerouteRouteGroup route)
