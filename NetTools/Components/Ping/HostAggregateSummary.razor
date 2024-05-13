@@ -20,62 +20,15 @@
     </ApexChart>
 </div>
 
-<div style="height: 45vh">
-    <ApexChart Title="Response Times" Options="_responseTimeChartOptions" @ref="_responseTimeChart">
-        @foreach (var series in HostResponses)
-        {
-            // apex charts expects datetimes to be in millisecond epoch form (hence the *1000)
-            var counter = 1;
-            var points = series.SelectMany(x => x.Responses.Select(y =>
-            {
-                var responseTime = (decimal)Math.Round(y.TimeMs, 3);
-                var timestamp = AllHaveTimestamps
-                    ? DateTimeOffset.FromUnixTimeSeconds(x.Timestamp!.Value + y.IMCPSeq).ToString("g")
-                    : (counter++ * y.IMCPSeq).ToString();
-
-                return new PingResultPoint(timestamp, responseTime);
-            }));
-            
-            <ApexPointSeries TItem="PingResultPoint"
-                             Name="@series.Key"
-                             Items="@points"
-                             SeriesType="SeriesType.Line"
-                             XValue="x => x.Timestamp"
-                             YValue="x => x.ResponseTime"/>
-        }
-    </ApexChart>
-</div>
-
 <HostSummaryTable HostResponses="HostResponses"/>
 
 @{
-    _responseTimeChart?.RenderAsync();
     _packetLossChart?.RenderAsync();
 }
 
 @code {
 
-    internal record PingResultPoint(string Timestamp, decimal ResponseTime);
-
     private ApexChart<PingResult> _packetLossChart;
-    private ApexChart<PingResultPoint> _responseTimeChart;
-
-    private readonly ApexChartOptions<PingResultPoint> _responseTimeChartOptions = new()
-    {
-        Chart = new Chart { Height = "100%" },
-        Theme = new Theme { Mode = Mode.Dark },
-        Legend = new Legend { Position = LegendPosition.Bottom },
-        PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { Horizontal = true } },
-        Xaxis = new XAxis { Type = XAxisType.Numeric, Title = new AxisTitle { Text = "Date" }, TickAmount = 7 },
-        Yaxis =
-        [
-            new YAxis
-            {
-                Title = new AxisTitle { Text = "RTT (ms)", Style = new AxisTitleStyle { FontSize = "14px" } },
-                Labels = new YAxisLabels { Style = new AxisLabelStyle { FontSize = "12px" } }
-            }
-        ]
-    };
 
     private readonly ApexChartOptions<PingResult> _packetLossChartOptions = new()
     {
@@ -88,7 +41,7 @@
 
     [Parameter]
     public ILookup<string, PingResult> HostResponses { get; set; }
-    
+
     private bool AllHaveTimestamps { get; set; }
 
     protected override void OnParametersSet()
