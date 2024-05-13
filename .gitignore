@@ -14,6 +14,7 @@ venv.bak/
 
 # custom filetypes
 /parser/dl/
+/parser/wget_converter/to_convert/
 *.mmdb
 
 ## Ignore Visual Studio temporary files, build results, and
