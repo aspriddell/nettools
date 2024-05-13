@@ -193,9 +193,8 @@
                 <thead>
                 <tr>
                     <th scope="col">Route</th>
-                    <th scope="col">Route Used (Consecutively)</th>
-                    <th scope="col">First Recorded</th>
-                    <th scope="col">Last Recorded</th>
+                    <th scope="col">Consecutive Uses</th>
+                    <th scope="col">First Used</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -205,7 +204,6 @@
                         <th>Route @routeBlock.Key</th>
                         <td>@routeBlock.Count() times</td>
                         <td>@routeBlock.First().Date.ToString("F")</td>
-                        <td>@routeBlock.Last().Date.ToString("F")</td>
                     </tr>
                 }
                 </tbody>
