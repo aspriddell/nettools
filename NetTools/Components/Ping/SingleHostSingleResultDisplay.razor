@@ -2,10 +2,11 @@
 
 <div style="height: 50vh">
     <ApexChart Title="Response Time" Options="_options" @ref="_chart">
-        <ApexPointSeries Items="@Result.Responses"
+        <ApexPointSeries Name="Ping"
+                         Items="@(Result.Responses?.Select(x => new PingPoint(x.IMCPSeq, x.TimeMs)) ?? [])"
                          SeriesType="SeriesType.Line"
-                         XValue="x => (Result.Timestamp + x.IMCPSeq) * 1000"
-                         YValue="@(x => (decimal)Math.Round(x.TimeMs, 3))"/>
+                         XValue="x => x.Sequence"
+                         YValue="@(x => (decimal)x.TimeMs)"/>
     </ApexChart>
 </div>
 
@@ -17,26 +18,24 @@
 
 @code {
 
-    private record HistogramPoint(double Midpoint, decimal Height);
+    private record PingPoint(int Sequence, double TimeMs);
     
-    private ApexChart<PingResponse> _chart;
-
-    private ApexChartOptions<PingResponse> _options = new()
+    private ApexChart<PingPoint> _chart;
+    private ApexChartOptions<PingPoint> _options = new()
     {
         Chart = new Chart { Height = "100%" },
         Theme = new Theme { Mode = Mode.Dark },
-        Legend = new Legend { Position = LegendPosition.Bottom },
-        Xaxis = new XAxis { Title = new AxisTitle { Text = "Sequence No." }, TickAmount = 20 },
+        Xaxis = new XAxis { Title = new AxisTitle { Text = "Sequence No." }, TickAmount = 20, Type = XAxisType.Numeric },
         Yaxis =
         [
             new YAxis
             {
-                Title = new AxisTitle { Text = "RTT (ms)", Style = new AxisTitleStyle { FontSize = "14px" } },
-                Labels = new YAxisLabels { Style = new AxisLabelStyle { FontSize = "12px" } }
+                Title = new AxisTitle { Text = "RTT (ms)", Style = new AxisTitleStyle { FontSize = "14px" } }
             }
         ]
     };
-    
+
     [Parameter]
     public PingResult Result { get; set; }
+
 }
