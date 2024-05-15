@@ -17,6 +17,7 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
 
     private IJSObjectReference _mapRef, _markerLayerRef;
     private ILookup<string, TracerouteRouteGroup> _hostTraces;
+    private bool _showOverview;
 
     [Inject]
     private IJSRuntime JsRuntime { get; set; }
@@ -33,6 +34,16 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
         {
             _hostTraces = value;
             _ = SetHost(value.FirstOrDefault()?.Key);
+        }
+    }
+
+    private bool ShowOverview
+    {
+        get => _showOverview;
+        set
+        {
+            _showOverview = value;
+            _ = SetTrace(value ? null : SelectedTrace ??= HostTraces[SelectedHost].FirstOrDefault());
         }
     }
 
@@ -67,13 +78,14 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
         }
 
         // get all ips for the host, then resolve all addresses with geolocation service
-        var allIps = HostTraces[host].SelectMany(x => x.Hops?.Select(y => y?.IP) ?? Enumerable.Empty<IPAddress>()).Where(y => y != null).ToHashSet();
+        var allIps = HostTraces[host].SelectMany(x => x.Hops?.Select(y => y?.IP) ?? []).Where(y => y != null).ToHashSet();
         var geolocatedEntries = await GeolocationService.PerformLookup(allIps).ConfigureAwait(false);
 
         SelectedHost = host;
         HostGeolocationCache = geolocatedEntries.ToDictionary(x => x.QueryAddress);
 
-        await SetTrace(null);
+        // don't manually set trace, setting this property also sets trace to null
+        ShowOverview = true;
     }
 
     private async Task SetTrace(TracerouteRouteGroup route)

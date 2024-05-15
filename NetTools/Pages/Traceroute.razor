@@ -27,14 +27,19 @@
                     }
                 </select>
 
-                <select class="form-select" style="width: unset" @onchange="i => SetTrace(HostTraces[SelectedHost].SingleOrDefault(x => x.Id.ToString(CultureInfo.InvariantCulture).Equals(i.Value)))">
-                    <option value="null" selected="@(SelectedTrace == null)">All Routes</option>
+                @if (!ShowOverview)
+                {
+                    <select class="form-select" style="width: unset" @onchange="i => SetTrace(HostTraces[SelectedHost].SingleOrDefault(x => x.Id.ToString(CultureInfo.InvariantCulture).Equals(i.Value)))">
+                        @foreach (var trace in HostTraces[SelectedHost].OrderBy(x => x.Id))
+                        {
+                            <option value="@trace.Id" selected="@(trace.Id == SelectedTrace?.Id)">Route @trace.Id.ToString()</option>
+                        }
+                    </select>
+                }
 
-                    @foreach (var trace in HostTraces[SelectedHost].OrderBy(x => x.Id))
-                    {
-                        <option value="@trace.Id" selected="@(trace.Id == SelectedTrace?.Id)">Route @trace.Id.ToString()</option>
-                    }
-                </select>
+                <div class="flex-grow-1">
+                    <HxSwitch @bind-Value="ShowOverview" Text="Show Summary"/>
+                </div>
             </div>
         }
 
@@ -48,7 +53,7 @@
         {
             // display nothing
         }
-        else if (SelectedTrace != null)
+        else if (SelectedTrace != null && !ShowOverview)
         {
             <table class="table">
                 <thead>
