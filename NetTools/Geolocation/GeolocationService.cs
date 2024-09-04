@@ -48,8 +48,8 @@ public partial class GeolocationService
     private readonly ApiClient _client;
 
     private readonly AsyncLock _lock = new();
-    private readonly IEnumerable<IPNetwork2> _privateNetworks = new[]
-    {
+    private readonly IEnumerable<IPNetwork2> _privateNetworks =
+    [
         IPNetwork2.Parse("127.0.0.0/8"), // IPv4 loopback
         IPNetwork2.Parse("100.64.0.0/10"), // IPv4 cgNAT
 
@@ -60,7 +60,7 @@ public partial class GeolocationService
         IPNetwork2.Parse("::1/128"), // IPv6 loopback
         IPNetwork2.Parse("fd00::/8"), // IPv6 ULAs
         IPNetwork2.Parse("fe80::/10") // IPv6 link-local
-    };
+    ];
 
     private Task _cooldownWaiter, _purgeTask;
 
@@ -127,7 +127,7 @@ public partial class GeolocationService
             var output = new LinkedList<IpGeolocation>();
             var purgeNeeded = false;
 
-            await foreach (var item in _geolocationCache.GetAllAsync(NetToolsSerializerContext.Default.CachedIpGeolocation))
+            await foreach (var item in _geolocationCache.GetAllAsync(SerializerContext.Default.CachedIpGeolocation))
             {
                 if (publiclyRoutable.Contains(item.QueryAddress) && item.CreatedEpoch > cacheIgnoreBefore)
                 {
@@ -220,8 +220,8 @@ public partial class GeolocationService
                     // deserialize single item
                     if (request is IpApiRequest)
                     {
-                        var item = await httpResponse.Content.ReadFromJsonAsync(NetToolsSerializerContext.Default.IpGeolocation).ConfigureAwait(false);
-                        await _geolocationCache.StoreItemAsync(MappingUtils.ToCachedIpGeolocation(item), NetToolsSerializerContext.Default.CachedIpGeolocation).ConfigureAwait(false);
+                        var item = await httpResponse.Content.ReadFromJsonAsync(SerializerContext.Default.IpGeolocation).ConfigureAwait(false);
+                        await _geolocationCache.StoreItemAsync(MappingUtils.ToCachedIpGeolocation(item), SerializerContext.Default.CachedIpGeolocation).ConfigureAwait(false);
 
                         resultsChain = resultsChain.Append(item);
                         missing.Remove(item.QueryAddress);
@@ -229,9 +229,9 @@ public partial class GeolocationService
                     else
                     {
                         var collectionListing = new List<IpGeolocation>();
-                        await foreach (var item in httpResponse.Content.ReadFromJsonAsAsyncEnumerable(NetToolsSerializerContext.Default.IpGeolocation).ConfigureAwait(false))
+                        await foreach (var item in httpResponse.Content.ReadFromJsonAsAsyncEnumerable(SerializerContext.Default.IpGeolocation).ConfigureAwait(false))
                         {
-                            await _geolocationCache.StoreItemAsync(MappingUtils.ToCachedIpGeolocation(item), NetToolsSerializerContext.Default.CachedIpGeolocation).ConfigureAwait(false);
+                            await _geolocationCache.StoreItemAsync(MappingUtils.ToCachedIpGeolocation(item), SerializerContext.Default.CachedIpGeolocation).ConfigureAwait(false);
                             collectionListing.Add(item);
 
                             missing.Remove(item.QueryAddress);
@@ -294,7 +294,7 @@ public partial class GeolocationService
             var removalQueue = new Lazy<List<string>>();
             var purgeBefore = DateTimeOffset.UtcNow.AddDays(-CacheExpiryDays).ToUnixTimeSeconds();
 
-            await foreach (var item in _geolocationCache.GetAllAsync(NetToolsSerializerContext.Default.CachedIpGeolocation))
+            await foreach (var item in _geolocationCache.GetAllAsync(SerializerContext.Default.CachedIpGeolocation))
             {
                 if (item.CreatedEpoch < purgeBefore)
                 {

@@ -6,10 +6,8 @@ using NetTools.Models;
 
 namespace NetTools;
 
-[JsonSerializable(typeof(IpGeolocation)), JsonSerializable(typeof(CachedIpGeolocation)), JsonSerializable(typeof(IEnumerable<IPAddress>))]
-[JsonSerializable(typeof(TracerouteResult)), JsonSerializable(typeof(TracerouteProbe))]
 [JsonSerializable(typeof(PingResult)), JsonSerializable(typeof(PingResponse))]
+[JsonSerializable(typeof(TracerouteResult)), JsonSerializable(typeof(TracerouteProbe))]
+[JsonSerializable(typeof(IpGeolocation)), JsonSerializable(typeof(CachedIpGeolocation)), JsonSerializable(typeof(IEnumerable<IPAddress>))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower, Converters = [typeof(JsonIPAddressConverter)])]
-internal partial class NetToolsSerializerContext : JsonSerializerContext
-{
-}
+internal partial class SerializerContext : JsonSerializerContext;

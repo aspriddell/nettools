@@ -29,18 +29,12 @@
             <div class="d-flex align-items-center gap-3">
                 <HxIcon Icon="@BootstrapIcon.InfoCircleFill"/>
                 <span>Processing File...</span>
-
-                @if (FileProcessing?.IsCancellationRequested == false)
-                {
-                    <div class="flex-grow-1"></div>
-                    <HxButton Color="ThemeColor.Link" OnClick="() => FileProcessing.Cancel()">Cancel</HxButton>
-                }
             </div>
         </HxAlert>
     }
 
     @if (Current == null && FileProcessing == null || ShowUploadDialog || UploadedFileFailed)
     {
-        <HxInputFileDropZone Accept="application/zip,application/json" OnChange="FileSubmitted" CssClass="mb-3"/>
+        <HxInputFileDropZone Accept="application/zip,application/json" OnChange="FileSubmitted" CssClass="@(ShowUploadDialog ? "mb-3" : string.Empty)"/>
     }
 </div>

@@ -22,7 +22,7 @@ public class Program
     public static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        TypeInfoResolver = NetToolsSerializerContext.Default,
+        TypeInfoResolver = SerializerContext.Default,
         Converters = { new JsonIPAddressConverter() }
     };
         

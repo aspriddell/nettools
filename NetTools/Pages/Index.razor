@@ -11,11 +11,12 @@
         <p>
             Upload boxes accept either a single <code>.json</code> file or a <code>.zip</code> file containing a collection of <code>.json</code> files.
             <br/>
-            These files can be obtained by passing the output of the program through <code>jc</code>. Additional features can be used when a <code>timestamp</code> property is added to all files, containing a unix epoch the tool was run.
+            These files can be obtained by passing the output of either traceroute/ping through <code>jc</code>, and using the output as the file content.
+            The <code>timestamp</code> key needs to be added containing the unix epoch to all files when submitting a .zip file to allow grouping by date.
         </p>
     </div>
     <div>
-        <h4>What data is submitted to the server?</h4>
+        <h4>What data is sent over the internet?</h4>
         <p>
             All processing is done on-device (this is a WebAssembly program) except geolocation data where needed (i.e. traceroute).
             <br/>

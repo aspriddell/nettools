@@ -54,7 +54,7 @@ public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
             {
                 await using var stream = obj.File.OpenReadStream();
                 var result = await JsonSerializer.DeserializeAsync<TItem>(stream, Program.JsonOptions);
-                results = new[] { result };
+                results = [result];
 
                 break;
             }
@@ -103,6 +103,9 @@ public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
 
         try
         {
+            // can't reload ui until file processing has finished
+            await InvokeAsync(StateHasChanged);
+
             CurrentFileName = obj.File.Name;
             Current = ProcessItems.Invoke(results);
 

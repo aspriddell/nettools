@@ -2,7 +2,7 @@
 @using NetTools.Geolocation
 @implements IDisposable
 
-@if (Geolocation.CooldownWaiter?.IsCompletedSuccessfully == false)
+@if (Geolocation.CooldownWaiter?.Status == TaskStatus.Running)
 {
     <HxAlert Color="ThemeColor.Danger">
         <div class="d-flex align-items-center gap-2">

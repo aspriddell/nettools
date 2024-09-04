@@ -15,7 +15,7 @@
                                  TOut="ILookup<string, TracerouteRouteGroup>"
                                  @bind-Current="HostTraces"
                                  ProcessItems="i => ProcessRoutes(i).ToLookup(x => x.Destination)"/>
-
+        
         @if (HostTraces?.Any() == true)
         {
             // custom dropdown as HxSelect doesn't like how we do it...

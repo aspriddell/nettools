@@ -1,6 +1,6 @@
 @using NetTools.Models
 
-<div style="height: 25vh">
+<div style="@($"height: max(25vh, {50 + HostResponses.Count() * 35}px)")">
     <ApexChart TItem="PingResult" Title="Packet Delivery" Options="_packetLossChartOptions" @ref="_packetLossChart">
         <ApexPointSeries TItem="PingResult"
                          Items="HostResponses.SelectMany(x => x)"

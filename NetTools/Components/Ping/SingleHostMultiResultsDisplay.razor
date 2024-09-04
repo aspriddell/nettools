@@ -4,7 +4,7 @@
     Func<PingResult, string> xValue = e => e.Timestamp.HasValue ? DateTimeOffset.FromUnixTimeSeconds(e.Timestamp.Value).Date.ToShortDateString() : "\u221e";
 }
 
-<div style="height: 25vh">
+<div style="@($"height: {50 + HostPingResults.DistinctBy(x => DateTimeOffset.FromUnixTimeSeconds(x.Timestamp ?? 0).UtcDateTime.Date).Count() * 35}px")">
     <ApexChart Title="Session Outcomes" Options="@_packetLossChartOptions" @ref="_packetLossChart">
         <ApexPointSeries Name="Loss-free" SeriesType="SeriesType.Bar" ShowDataLabels
                          Items="@HostPingResults" OrderBy="e => e.X" XValue="xValue"
@@ -24,7 +24,7 @@
     </ApexChart>
 </div>
 
-<div style="height: 40vh">
+<div style="height: 60vh">
     <ApexChart Title="Response Rate (w/ loss rate)" Options="_pingTrendChartOptions" @ref="_pingTrendChart">
         @* apex charts expects datetimes to be in millisecond epoch form (hence the *1000) *@
         <ApexPointSeries Name="Average Ping"
