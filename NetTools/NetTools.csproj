@@ -2,25 +2,31 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <BlazorEnableCompression>false</BlazorEnableCompression>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <Title>NetTools</Title>
+        <Description>A bulk traceroute/ping results visualiser powered by WebAssembly</Description>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Blazor-ApexCharts" Version="3.3.0" />
+      <PackageReference Include="Blazor-ApexCharts" Version="3.4.0" />
       <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
       <PackageReference Include="DragonFruit.Data" Version="4.0.0" />
       <PackageReference Include="DragonFruit.Data.Roslyn" Version="4.0.0" PrivateAssets="all" />
       <PackageReference Include="Geolocation" Version="1.2.1" />
-      <PackageReference Include="Havit.Blazor.Components.Web.Bootstrap" Version="4.6.7" />
+      <PackageReference Include="Havit.Blazor.Components.Web.Bootstrap" Version="4.6.13" />
       <PackageReference Include="Humanizer.Core" Version="2.14.1" />
       <PackageReference Include="IPNetwork2" Version="3.0.667" />
       <PackageReference Include="Macross.Json.Extensions" Version="3.0.0" />
       <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-      <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.5" />
-      <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.5" />
-      <PackageReference Include="morelinq" Version="4.2.0" />
+      <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.8" />
+      <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.8" />
+      <PackageReference Include="morelinq" Version="4.3.0" />
       <PackageReference Include="Nito.AsyncEx.Coordination" Version="5.1.2" />
-      <PackageReference Include="Riok.Mapperly" Version="3.5.1" />
-      <PackageReference Include="Tavenem.Blazor.IndexedDB" Version="3.0.2" />
+      <PackageReference Include="Riok.Mapperly" Version="3.6.0" />
+      <PackageReference Include="Tavenem.Blazor.IndexedDB" Version="[3.0.2,4)" />
     </ItemGroup>
 
 </Project>
