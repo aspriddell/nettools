@@ -17,8 +17,8 @@ namespace NetTools;
 
 public class Program
 {
-    private const string IndexDbName = "nettools";
-    
+    internal const string IndexDbName = "nettools";
+
     public static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -49,9 +49,11 @@ public class Program
         // blazor services
         builder.Services.AddHxServices();
         builder.Services.AddBlazoredLocalStorageAsSingleton(c => c.JsonSerializerOptions = JsonOptions);
-        builder.Services.AddSingleton(s => new IndexedDbService(s.GetRequiredService<IJSRuntime>(), new IndexedDb(IndexDbName, 1, "geocache")));
 
-        builder.Services.AddSingleton<GeolocationService>();
+        builder.Services.AddIndexedDbService();
+        builder.Services.AddIndexedDb(IndexDbName, objectStores: ["geocache"], version: 1, jsonSerializerOptions: JsonOptions);
+
+        builder.Services.AddScoped<GeolocationService>();
 
         await builder.Build().RunAsync();
     }

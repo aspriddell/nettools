@@ -7,6 +7,8 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Blazored.LocalStorage;
 using DragonFruit.Data;
+using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Nito.AsyncEx;
 using Riok.Mapperly.Abstractions;
@@ -43,8 +45,8 @@ public partial class GeolocationService
                                                      GeolocationFields.QueryIp;
     
     private readonly ILogger<GeolocationService> _logger;
-    private readonly IndexedDbService _geolocationCache;
     private readonly ILocalStorageService _localStorage;
+    private readonly IndexedDbStore _geolocationCache;
     private readonly ApiClient _client;
 
     private readonly AsyncLock _lock = new();
@@ -64,9 +66,9 @@ public partial class GeolocationService
 
     private Task _cooldownWaiter, _purgeTask;
 
-    public GeolocationService(IndexedDbService geolocationCache, ILocalStorageService localStorage, ApiClient client, ILogger<GeolocationService> logger)
+    public GeolocationService([FromKeyedServices(Program.IndexDbName)] IndexedDb geolocationCache, ILocalStorageService localStorage, ApiClient client, ILogger<GeolocationService> logger)
     {
-        _geolocationCache = geolocationCache;
+        _geolocationCache = geolocationCache["geocache"];
         _localStorage = localStorage;
         _client = client;
         _logger = logger;
@@ -100,7 +102,7 @@ public partial class GeolocationService
     /// </summary>
     public async Task<IpGeolocation> PerformLookup(IPAddress address)
     {
-        var results = await PerformLookup(new[] { address }).ConfigureAwait(false);
+        var results = await PerformLookup([address]).ConfigureAwait(false);
         return results.FirstOrDefault();
     }
     
@@ -116,7 +118,7 @@ public partial class GeolocationService
 
         if (publiclyRoutable.Count == 0)
         {
-            return Array.Empty<IpGeolocation>();
+            return [];
         }
 
         var cacheIgnoreBefore = DateTimeOffset.UtcNow.AddDays(-CacheExpiryDays).ToUnixTimeSeconds();
@@ -309,7 +311,7 @@ public partial class GeolocationService
         
             foreach (var id in removalQueue.Value)
             {
-                await _geolocationCache.RemoveItemAsync<CachedIpGeolocation>(id).ConfigureAwait(false);
+                await _geolocationCache.RemoveItemAsync(id).ConfigureAwait(false);
             }
         }
     }
