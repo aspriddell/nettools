@@ -25,7 +25,7 @@ public class Program
         TypeInfoResolver = SerializerContext.Default,
         Converters = { new JsonIPAddressConverter() }
     };
-        
+
     public static async Task Main(string[] args)
     {
         var builder = WebAssemblyHostBuilder.CreateDefault(args);

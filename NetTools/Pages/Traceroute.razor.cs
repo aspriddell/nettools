@@ -145,10 +145,10 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
         return SetTrace(SelectedTrace);
     }
     
-    private IEnumerable<TracerouteRouteGroup> ProcessRoutes(IReadOnlyCollection<TracerouteResult> results)
+    private static IEnumerable<TracerouteRouteGroup> ProcessRoutes(IReadOnlyCollection<TracerouteResult> results)
     {
         var distinctRoutes = new List<TracerouteRouteGroup>();
-        foreach (var hostTraceGroup in results.OrderBy(x => x.Timestamp).GroupBy(x => x.DestinationName))
+        foreach (var hostTraceGroup in results.OrderBy(x => x.Timestamp).GroupBy(x => x.Destination))
         {
             var routeIndex = 1; // specific index for each route (per-host)
             var routeCount = hostTraceGroup.Count();

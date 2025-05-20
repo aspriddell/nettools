@@ -17,7 +17,7 @@ public record PingResult(
     [property: JsonPropertyName("round_trip_time_avg")] double RoundTripTimeAvg,
     [property: JsonPropertyName("round_trip_time_stdev")] double RoundTripTimeStddev,
     [property: JsonPropertyName("timestamp")] long? Timestamp,
-    [property: JsonPropertyName("responses")] IReadOnlyList<PingResponse> Responses);
+    [property: JsonPropertyName("responses")] IReadOnlyList<PingResponse> Responses) : IResult;
 
 public record PingResponse(
     [property: JsonPropertyName("type")] string Type,

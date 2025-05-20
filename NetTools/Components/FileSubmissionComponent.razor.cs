@@ -9,10 +9,11 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.Logging;
+using NetTools.Models;
 
 namespace NetTools.Components;
 
-public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
+public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase where TItem : IResult
 {
     [Parameter]
     public TOut Current { get; set; }
@@ -85,6 +86,15 @@ public partial class FileSubmissionComponent<TItem, TOut> : ComponentBase
                     try
                     {
                         var result = await JsonSerializer.DeserializeAsync<TItem>(entryStream, Program.JsonOptions);
+
+                        if (string.IsNullOrEmpty(result.Destination))
+                        {
+                            UploadedFileFailed = true;
+
+                            Logger.LogWarning("{FileName} does not contain a destination. It cannot be used in batch processing.", entry.FullName);
+                            return;
+                        }
+                        
                         archiveResults.Add(result);
                     }
                     catch (Exception e)

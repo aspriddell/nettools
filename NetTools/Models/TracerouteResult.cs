@@ -5,11 +5,16 @@ using System.Text.Json.Serialization;
 namespace NetTools.Models;
 
 internal record TracerouteResult(
-    long Timestamp,
-    string DestinationName,
-    IPAddress DestinationIP,
-    IReadOnlyList<TracerouteHop> Hops);
+    [property: JsonPropertyName("timestamp")] long Timestamp,
+    [property: JsonPropertyName("destination_name")] string Destination,
+    [property: JsonPropertyName("destination_ip")] IPAddress DestinationIP,
+    [property: JsonPropertyName("hops")] IReadOnlyList<TracerouteHop> Hops) : IResult;
 
-internal record TracerouteHop(int Hop, IReadOnlyList<TracerouteProbe> Probes);
+internal record TracerouteHop(
+    [property: JsonPropertyName("hop")] int Hop,
+    [property: JsonPropertyName("probes")] IReadOnlyList<TracerouteProbe> Probes);
 
-internal record TracerouteProbe(IPAddress IP, string Name, [property: JsonPropertyName("rtt")] float RoundtripTimeMs);
+internal record TracerouteProbe(
+    [property: JsonPropertyName("ip")] IPAddress IP,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("rtt")] float RoundtripTimeMs);
