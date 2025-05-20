@@ -123,7 +123,7 @@
                                 </td>
                                 <td>-</td>
                                 <td>-</td>
-                                <td>@hop.RoundtripTimeMs.ToString("f3")</td>
+                                <td>@hop.RoundtripTimeMs?.ToString("f3")</td>
                                 <td>-</td>
                             </tr>
                         }
@@ -160,7 +160,7 @@
                                 </td>
                                 <td>@ipInfo.AsName</td>
                                 <td>@ipInfo.Organisation</td>
-                                <td>@hop.RoundtripTimeMs.ToString("f3")</td>
+                                <td>@(hop.RoundtripTimeMs?.ToString("f3") ?? "unknown")</td>
                                 @if (IgnoredHops.Contains(hop.IP))
                                 {
                                     <td>-</td>
@@ -185,8 +185,8 @@
                         <th></th>
                         <th></th>
                         <th></th>
-                        <th>@SelectedTrace.Hops.Last(x => x != null).RoundtripTimeMs.ToString("f3") ms</th>
-                        <th>@totalDistanceServiced?.ToString("N3") miles</th>
+                        <th>@(SelectedTrace.Hops.LastOrDefault(x => x?.RoundtripTimeMs != null)?.RoundtripTimeMs?.ToString("f3") ?? "unknown") ms</th>
+                        <th>@totalDistanceServiced.GetValueOrDefault().ToString("N3") miles</th>
                     </tr>
                 }
                 </tbody>

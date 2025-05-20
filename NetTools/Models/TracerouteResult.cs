@@ -17,4 +17,4 @@ internal record TracerouteHop(
 internal record TracerouteProbe(
     [property: JsonPropertyName("ip")] IPAddress IP,
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("rtt")] float RoundtripTimeMs);
+    [property: JsonPropertyName("rtt")] float? RoundtripTimeMs);
