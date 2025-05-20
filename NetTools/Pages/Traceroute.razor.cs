@@ -56,7 +56,7 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
     {
         if (firstRender)
         {
-            _mapRef = await JsRuntime.InvokeAsync<IJSObjectReference>("initMap", "map");
+            _mapRef = await JsRuntime.InvokeAsync<IJSObjectReference>("initMap", "map", Program.MapKey);
             _markerLayerRef = await JsRuntime.InvokeAsync<IJSObjectReference>("createLayer", _mapRef);
         }
     }

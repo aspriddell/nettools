@@ -16,6 +16,7 @@ namespace NetTools;
 public class Program
 {
     internal const string IndexDbName = "nettools";
+    internal const string MapKey = "eyJraWQiOiIzUDNGSDkzS0wyIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJRODI0VkhBVDlTIiwiaWF0IjoxNzQ3NzM5Mzg3LCJvcmlnaW4iOiIqLnBwYy5tb2UifQ.NezK0Sunvq0oEJaEgmJBmNFfsSOwQJ2lAtMCu8iqVRp04FoTHhv6VcTYyLAq1aDAuPbrLWN8bkOq1ZoaCcWusQ";
 
     public static readonly JsonSerializerOptions JsonOptions = new()
     {

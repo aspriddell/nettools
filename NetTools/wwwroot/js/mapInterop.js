@@ -1,52 +1,90 @@
-function initMap(id) {
-    const map = L.map(id).setView([51.505, -0.09], 4);
-    const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+function initMap(id, authCode) {
+    mapkit.init({
+        authorizationCallback: function (done) {
+            done(authCode);
+        }
     });
 
-    tiles.addTo(map);
+    map = new mapkit.Map(id, {
+        center: new mapkit.Coordinate(51.505, -0.09),
+        region: new mapkit.CoordinateRegion(
+            new mapkit.Coordinate(51.505, -0.09),
+            new mapkit.CoordinateSpan(10, 10)
+        ),
+        showsZoomControl: true
+    });
+
+    map.addEventListener("region-change-end", () => {
+        const zoomThreshold = 6;
+        const showTitles = map._impl.zoomLevel >= zoomThreshold;
+        markerLayer.forEach(annotation => {
+            annotation.title = showTitles ? annotation._originalTitle : "";
+        });
+    });
+
     return map;
 }
 
 function disposeMap(map) {
-    map.off();
-    map.remove();
+    map.destroy();
 }
 
 function createLayer(map) {
-    const layer = L.layerGroup();
-    map.addLayer(layer);
-    
-    return layer;
+    markerLayer = [];
+    return markerLayer;
 }
 
 function clearLayer(layer) {
-    layer.clearLayers();
-}
-
-function removeLayer(map, layer) {
-    map.removeLayer(layer);
-}
-
-function addMarkers(map, layerGroup, markers, includePolyline) {    
-    const markerInstances = markers.map(marker => {
-        return L.marker(marker.position).bindPopup(marker.label);
+    layer.forEach(item => {
+        if (item instanceof mapkit.MarkerAnnotation) {
+            map.removeAnnotation(item);
+        } else if (item instanceof mapkit.PolylineOverlay) {
+            map.removeOverlay(item);
+        }
     });
 
-    // add layers
-    markerInstances.forEach(m => layerGroup.addLayer(m));
-    
-    if (includePolyline) {
-        addPolyline(layerGroup, markers.map(m => m.position));
-    }
-
-    // https://stackoverflow.com/a/16845714
-    const group = new L.featureGroup(markerInstances);
-    map.fitBounds(group.getBounds().pad(0.05));
+    layer.length = 0;
 }
 
-function addPolyline(layerGroup, polyline) {
-    const line = L.polyline(polyline, {color: 'orange'});
-    layerGroup.addLayer(line);
+function addMarkers(map, layer, markers, includePolyline) {
+    clearLayer(layer);
+
+    const coords = markers.map(m => new mapkit.Coordinate(m.position[0], m.position[1]));
+    const seen = new Set();
+    const uniqueMarkers = markers.filter(m => {
+        const key = m.position.join(",");
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+
+    uniqueMarkers.forEach((marker) => {
+        const coord = new mapkit.Coordinate(marker.position[0], marker.position[1]);
+        const annotation = new mapkit.MarkerAnnotation(coord);
+        annotation._originalTitle = marker.label;
+
+        map.addAnnotation(annotation);
+        layer.push(annotation);
+    });
+
+    if (includePolyline && coords.length > 1) {
+        addPolyline(layer, coords);
+    }
+
+    if (coords.length > 0) {
+        map.showItems(layer);
+        map._impl.zoomLevel--;
+    }
+}
+
+function addPolyline(layer, coords) {
+    const polyline = new mapkit.PolylineOverlay(coords, {
+        style: new mapkit.Style({
+            strokeColor: "#FFA500",
+            lineWidth: 3
+        })
+    });
+
+    map.addOverlay(polyline);
+    layer.push(polyline);
 }
