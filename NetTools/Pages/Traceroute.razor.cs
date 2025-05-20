@@ -120,12 +120,14 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
             {
                 continue;
             }
-                
+
             double[] location = [ipInfo.Latitude.Value, ipInfo.Longitude.Value];
 
             if (lastLocation?.SequenceEqual(location) != true)
             {
-                markers.Add(new MapMarker(location, $"{hop.Name} ({hop.IP})"));
+                var ipString = hop.IP.ToString();
+                markers.Add(new MapMarker(location, hop.Name == ipString ? ipString : $"{hop.Name} ({hop.IP})"));
+
                 lastLocation = location;
             }
         }
@@ -145,7 +147,7 @@ public partial class Traceroute : ComponentBase, IAsyncDisposable
         return SetTrace(SelectedTrace);
     }
     
-    private static IEnumerable<TracerouteRouteGroup> ProcessRoutes(IReadOnlyCollection<TracerouteResult> results)
+    private static List<TracerouteRouteGroup> ProcessRoutes(IReadOnlyCollection<TracerouteResult> results)
     {
         var distinctRoutes = new List<TracerouteRouteGroup>();
         foreach (var hostTraceGroup in results.OrderBy(x => x.Timestamp).GroupBy(x => x.Destination))
