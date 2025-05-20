@@ -7,7 +7,6 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Blazored.LocalStorage;
 using DragonFruit.Data;
-using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Nito.AsyncEx;
@@ -129,7 +128,7 @@ public partial class GeolocationService
             var output = new LinkedList<IpGeolocation>();
             var purgeNeeded = false;
 
-            await foreach (var item in _geolocationCache.GetAllAsync(SerializerContext.Default.CachedIpGeolocation))
+            await foreach (var item in _geolocationCache.Query(SerializerContext.Default.CachedIpGeolocation).AsAsyncEnumerable())
             {
                 if (publiclyRoutable.Contains(item.QueryAddress) && item.CreatedEpoch > cacheIgnoreBefore)
                 {
@@ -296,7 +295,7 @@ public partial class GeolocationService
             var removalQueue = new Lazy<List<string>>();
             var purgeBefore = DateTimeOffset.UtcNow.AddDays(-CacheExpiryDays).ToUnixTimeSeconds();
 
-            await foreach (var item in _geolocationCache.GetAllAsync(SerializerContext.Default.CachedIpGeolocation))
+            await foreach (var item in _geolocationCache.Query(SerializerContext.Default.CachedIpGeolocation).AsAsyncEnumerable())
             {
                 if (item.CreatedEpoch < purgeBefore)
                 {

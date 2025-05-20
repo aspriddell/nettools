@@ -9,9 +9,7 @@ using Havit.Blazor.Components.Web;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.JSInterop;
 using NetTools.Geolocation;
-using Tavenem.Blazor.IndexedDB;
 
 namespace NetTools;
 
@@ -51,7 +49,7 @@ public class Program
         builder.Services.AddBlazoredLocalStorageAsSingleton(c => c.JsonSerializerOptions = JsonOptions);
 
         builder.Services.AddIndexedDbService();
-        builder.Services.AddIndexedDb(IndexDbName, objectStores: ["geocache"], version: 1, jsonSerializerOptions: JsonOptions);
+        builder.Services.AddIndexedDb(IndexDbName, objectStores: ["geocache"], version: 1);
 
         builder.Services.AddScoped<GeolocationService>();
 
