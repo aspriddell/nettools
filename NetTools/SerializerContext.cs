@@ -6,6 +6,7 @@ using NetTools.Models;
 
 namespace NetTools;
 
+[JsonSerializable(typeof(GeolocationService.CooldownEntry))]
 [JsonSerializable(typeof(PingResult)), JsonSerializable(typeof(PingResponse))]
 [JsonSerializable(typeof(TracerouteResult)), JsonSerializable(typeof(TracerouteProbe))]
 [JsonSerializable(typeof(IpGeolocation)), JsonSerializable(typeof(CachedIpGeolocation)), JsonSerializable(typeof(IEnumerable<IPAddress>))]

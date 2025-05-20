@@ -23,7 +23,7 @@ public partial class GeolocationService
     /// <summary>
     /// Represents a cooldown that has been applied to this session.
     /// </summary>
-    private record CooldownEntry(DateTimeOffset CooldownEnds);
+    internal record CooldownEntry(DateTimeOffset CooldownEnds);
 
     private const int CacheExpiryDays = 21;
     private const string PersistedCooldownRecord = "geocache-cooldown-epoch";
